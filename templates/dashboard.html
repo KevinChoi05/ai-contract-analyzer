@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard - Contract Analyzer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { 
+            font-family: 'Inter', Arial, sans-serif; 
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(120deg, #f7faff 0%, #e3e9f7 100%);
+            color: #333;
+            min-height: 100vh;
+        }
+        
+        .header {
+            background: #fff;
+            padding: 1.5em 2em;
+            box-shadow: 0 1px 10px rgba(0,0,0,0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            font-size: 1.4em;
+            font-weight: 700;
+            color: #3498db;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .navbar {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+        
+        .nav-item {
+            color: #7f8c8d;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s;
+            padding: 5px 10px;
+            border-radius: 4px;
+        }
+        
+        .nav-item:hover {
+            color: #3498db;
+            background: rgba(52, 152, 219, 0.1);
+        }
+        
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .user-email {
+            color: #2c3e50;
+            font-weight: 500;
+        }
+        
+        .logout-btn {
+            background: #f1f1f1;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            color: #7f8c8d;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .logout-btn:hover {
+            background: #e74c3c;
+            color: white;
+        }
+        
+        .container {
+            max-width: 1100px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+        
+        .page-title {
+            margin-bottom: 30px;
+            color: #2c3e50;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .action-button {
+            background: linear-gradient(90deg, #3498db 60%, #2980b9 100%);
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            font-weight: 600;
+            font-size: 0.9em;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+        
+        .action-button:hover {
+            background: linear-gradient(90deg, #2980b9 60%, #3498db 100%);
+            transform: translateY(-1px);
+        }
+        
+        .document-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 20px;
+        }
+        
+        .document-card {
+            background: #fff;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            transition: all 0.2s;
+        }
+        
+        .document-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 18px rgba(0,0,0,0.1);
+        }
+        
+        .card-header {
+            padding: 15px;
+            border-bottom: 1px solid #f1f1f1;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        
+        .document-title {
+            font-weight: 600;
+            font-size: 1.1em;
+            color: #2c3e50;
+            margin: 0;
+            word-break: break-word;
+        }
+        
+        .document-date {
+            font-size: 0.8em;
+            color: #7f8c8d;
+            margin-top: 5px;
+        }
+        
+        .card-body {
+            padding: 15px;
+        }
+        
+        .risk-summary {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .risk-item {
+            flex: 1;
+            text-align: center;
+            padding: 8px;
+            border-radius: 6px;
+        }
+        
+        .risk-item.high {
+            background: rgba(231, 76, 60, 0.1);
+        }
+        
+        .risk-item.medium {
+            background: rgba(243, 156, 18, 0.1);
+        }
+        
+        .risk-item.low {
+            background: rgba(46, 204, 113, 0.1);
+        }
+        
+        .risk-count {
+            font-size: 1.5em;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        
+        .risk-count.high {
+            color: #e74c3c;
+        }
+        
+        .risk-count.medium {
+            color: #f39c12;
+        }
+        
+        .risk-count.low {
+            color: #2ecc71;
+        }
+        
+        .risk-label {
+            font-size: 0.8em;
+            color: #7f8c8d;
+        }
+        
+        .card-footer {
+            padding: 15px;
+            background: #f9f9f9;
+            border-top: 1px solid #f1f1f1;
+            text-align: center;
+        }
+        
+        .view-button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .view-button:hover {
+            background: #2980b9;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        
+        .empty-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+            color: #3498db;
+        }
+        
+        .empty-message {
+            font-size: 1.2em;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+        
+        .empty-description {
+            color: #7f8c8d;
+            margin-bottom: 30px;
+        }
+        
+        @media (max-width: 768px) {
+            .header {
+                padding: 1em;
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .navbar {
+                margin-top: 10px;
+            }
+            
+            .document-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <a href="{{ url_for('dashboard') }}" class="logo">
+            <span>📄</span> Contract Analyzer
+        </a>
+        <div class="navbar">
+            <a href="{{ url_for('dashboard') }}" class="nav-item">Dashboard</a>
+            <a href="{{ url_for('upload') }}" class="nav-item">Upload Contract</a>
+        </div>
+        <div class="user-menu">
+            <span class="user-email">{{ current_user.email }}</span>
+            <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
+        </div>
+    </header>
+    
+    <div class="container">
+        <div class="page-title">
+            <h1>Your Contracts</h1>
+            <a href="{{ url_for('upload') }}" class="action-button">+ Upload New Contract</a>
+        </div>
+        
+        {% if documents %}
+            <div class="document-grid">
+                {% for document in documents %}
+                    <div class="document-card">
+                        <div class="card-header">
+                            <div>
+                                <h3 class="document-title">{{ document.filename }}</h3>
+                                <div class="document-date">Analyzed on {{ document.analysis_date }}</div>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="risk-summary">
+                                <div class="risk-item high">
+                                    <div class="risk-count high">{{ document.high_risk }}</div>
+                                    <div class="risk-label">High Risk</div>
+                                </div>
+                                <div class="risk-item medium">
+                                    <div class="risk-count medium">{{ document.medium_risk }}</div>
+                                    <div class="risk-label">Medium Risk</div>
+                                </div>
+                                <div class="risk-item low">
+                                    <div class="risk-count low">{{ document.low_risk }}</div>
+                                    <div class="risk-label">Low Risk</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-footer">
+                            <a href="{{ url_for('results', document_id=document.id) }}" class="view-button">View Analysis</a>
+                            <a href="{{ url_for('test_vision_ui', document_id=document.id) }}" class="view-button" style="background: #9b59b6; margin-left: 10px;">🧪 Test Vision</a>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <div class="empty-icon">📄</div>
+                <div class="empty-message">No contracts yet</div>
+                <div class="empty-description">Upload your first contract to analyze potential risks</div>
+                <a href="{{ url_for('upload') }}" class="action-button">+ Upload Contract</a>
+            </div>
+        {% endif %}
+    </div>
+</body>
+</html> 

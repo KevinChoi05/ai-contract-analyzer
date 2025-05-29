@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>PDF.js viewer</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.5.141/web/pdf_viewer.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.5.141/build/pdf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.5.141/web/pdf_viewer.min.js"></script>
+  <style>
+    html, body {
+      height: 100%;
+      width: 100%;
+      margin: 0;
+      padding: 0;
+    }
+    #viewerContainer {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: #404040;
+    }
+    #viewer {
+      width: 100%;
+      height: 100%;
+    }
+    .toolbar {
+      background-color: #474747;
+      color: white;
+      padding: 10px;
+      display: flex;
+      align-items: center;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 9999;
+    }
+    .toolbar button {
+      background-color: #3498db;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      margin-right: 8px;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+    .highlight-match {
+      background-color: rgba(255, 255, 0, 0.3);
+    }
+    .highlight-match.selected {
+      background-color: rgba(255, 150, 0, 0.5);
+    }
+    .toolbar span {
+      margin: 0 10px;
+    }
+    .findbar {
+      padding: 5px 10px;
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+    }
+    .findbar input {
+      padding: 4px 8px;
+      border-radius: 3px;
+      border: none;
+      margin-right: 5px;
+    }
+    #viewerContainer {
+      margin-top: 50px;
+    }
+    .page {
+      margin: 10px auto;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+      position: relative;
+    }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <button id="prev">Previous</button>
+    <button id="next">Next</button>
+    <span>Page: <span id="page_num"></span> / <span id="page_count"></span></span>
+    <button id="zoomIn">Zoom In</button>
+    <button id="zoomOut">Zoom Out</button>
+    <div class="findbar">
+      <input type="text" id="findInput" placeholder="Find in document...">
+      <button id="find">Find</button>
+      <button id="findPrev">Previous</button>
+      <button id="findNext">Next</button>
+      <span id="findResults"></span>
+    </div>
+  </div>
+
+  <div id="viewerContainer">
+    <div id="viewer" class="pdfViewer"></div>
+  </div>
+
+  <script>
+    // Get URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const pdfUrl = urlParams.get('file');
+    const searchTerms = urlParams.get('search');
+    
+    let pdfDoc = null,
+        pageNum = 1,
+        pageRendering = false,
+        pageNumPending = null,
+        scale = 1.0,
+        canvas = null,
+        ctx = null;
+
+    // Initialize PDF.js
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.5.141/build/pdf.worker.min.js';
+
+    // Create PDF viewer application object
+    window.PDFViewerApplication = {
+      initialized: false,
+      pdfDocument: null,
+      pdfViewer: null,
+      findController: null,
+      findBar: {
+        opened: false,
+        open: function() {
+          this.opened = true;
+        }
+      },
+      
+      // Execute search command
+      executeCommand: function(cmd, params) {
+        if (cmd === 'find') {
+          this.findController.executeCommand(cmd, params);
+        }
+      }
+    };
+
+    // Load the PDF
+    pdfjsLib.getDocument(pdfUrl).promise.then(function(pdfDoc_) {
+      pdfDoc = pdfDoc_;
+      PDFViewerApplication.pdfDocument = pdfDoc;
+      document.getElementById('page_count').textContent = pdfDoc.numPages;
+
+      // Initial/first page rendering
+      renderPage(pageNum);
+      
+      // Create a new event bus
+      const eventBus = new pdfjsViewer.EventBus();
+      
+      // Setup PDF viewer 
+      const pdfViewer = new pdfjsViewer.PDFViewer({
+        container: document.getElementById('viewer'),
+        eventBus: eventBus,
+      });
+      PDFViewerApplication.pdfViewer = pdfViewer;
+      
+      // Setup PDF find controller
+      const findController = new pdfjsViewer.PDFFindController({
+        pdfViewer: pdfViewer,
+        eventBus: eventBus
+      });
+      PDFViewerApplication.findController = findController;
+      pdfViewer.setFindController(findController);
+      
+      // Set the document
+      pdfViewer.setDocument(pdfDoc);
+      
+      // Initialize search functionality 
+      document.getElementById('find').addEventListener('click', function() {
+        const query = document.getElementById('findInput').value;
+        if (query) {
+          findController.executeCommand('find', {
+            query: query,
+            phraseSearch: true,
+            highlightAll: true,
+            caseSensitive: false,
+            findPrevious: false
+          });
+        }
+      });
+      
+      document.getElementById('findPrev').addEventListener('click', function() {
+        findController.executeCommand('findagain', {
+          findPrevious: true
+        });
+      });
+      
+      document.getElementById('findNext').addEventListener('click', function() {
+        findController.executeCommand('findagain', {
+          findPrevious: false
+        });
+      });
+      
+      // Wait for pages to render
+      eventBus.on('pagesloaded', function() {
+        console.log('Pages loaded');
+        PDFViewerApplication.initialized = true;
+        
+        // If search terms were provided in URL, execute search
+        if (searchTerms) {
+          const terms = decodeURIComponent(searchTerms).split(',');
+          if (terms.length > 0) {
+            // Populate search input with first term
+            document.getElementById('findInput').value = terms[0];
+            
+            // Execute the search
+            setTimeout(() => {
+              findController.executeCommand('find', {
+                query: terms[0],
+                phraseSearch: true,
+                highlightAll: true,
+                caseSensitive: false,
+                findPrevious: false
+              });
+            }, 1000);
+          }
+        }
+      });
+    });
+
+    function renderPage(num) {
+      pageRendering = true;
+      
+      // Update page counters
+      document.getElementById('page_num').textContent = num;
+
+      // Get page
+      pdfDoc.getPage(num).then(function(page) {
+        const viewport = page.getViewport({scale: scale});
+        
+        // Prepare canvas
+        if (!canvas) {
+          canvas = document.createElement('canvas');
+          ctx = canvas.getContext('2d');
+          document.getElementById('viewer').appendChild(canvas);
+        }
+        
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+
+        // Render PDF page
+        const renderContext = {
+          canvasContext: ctx,
+          viewport: viewport
+        };
+        
+        const renderTask = page.render(renderContext);
+
+        // Wait for rendering to finish
+        renderTask.promise.then(function() {
+          pageRendering = false;
+          if (pageNumPending !== null) {
+            // New page rendering is pending
+            renderPage(pageNumPending);
+            pageNumPending = null;
+          }
+        });
+      });
+    }
+
+    // Go to previous page
+    document.getElementById('prev').addEventListener('click', function() {
+      if (pageNum <= 1) {
+        return;
+      }
+      pageNum--;
+      queueRenderPage(pageNum);
+    });
+
+    // Go to next page
+    document.getElementById('next').addEventListener('click', function() {
+      if (pageNum >= pdfDoc.numPages) {
+        return;
+      }
+      pageNum++;
+      queueRenderPage(pageNum);
+    });
+    
+    // Zoom in
+    document.getElementById('zoomIn').addEventListener('click', function() {
+      scale *= 1.2;
+      renderPage(pageNum);
+    });
+    
+    // Zoom out
+    document.getElementById('zoomOut').addEventListener('click', function() {
+      scale /= 1.2;
+      renderPage(pageNum);
+    });
+
+    function queueRenderPage(num) {
+      if (pageRendering) {
+        pageNumPending = num;
+      } else {
+        renderPage(num);
+      }
+    }
+  </script>
+</body>
+</html> 

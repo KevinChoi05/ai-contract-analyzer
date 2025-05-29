@@ -1,0 +1,2434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Contract Analysis Results</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.5.141/build/pdf.min.js"></script>
+    <style>
+        body { 
+            font-family: 'Inter', Arial, sans-serif; 
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(120deg, #f7faff 0%, #e3e9f7 100%);
+            color: #333;
+            min-height: 100vh;
+        }
+        
+        /* Chrome-style tab interface */
+        .tabs-container {
+            position: relative;
+            background: #dee4e7;
+            height: 40px;
+            padding: 0 10px;
+            border-bottom: 1px solid #c1c9d1;
+            display: flex;
+            align-items: flex-end;
+        }
+        .file-tab {
+            height: 34px;
+            padding: 0 28px 0 12px;
+            border-radius: 8px 8px 0 0;
+            background: #e8edef;
+            display: flex;
+            align-items: center;
+            font-size: 0.8em;
+            margin-right: 2px;
+            position: relative;
+            transition: all 0.2s;
+            cursor: pointer;
+            white-space: nowrap;
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .file-tab.active {
+            background: #fff;
+            z-index: 10;
+            height: 36px;
+            font-weight: 500;
+            color: #3498db;
+        }
+        .file-tab-close {
+            position: absolute;
+            right: 8px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: all 0.2s;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9em;
+            color: #666;
+        }
+        .file-tab:hover .file-tab-close {
+            opacity: 1;
+        }
+        .file-tab-close:hover {
+            background: #ccc;
+            color: #333;
+        }
+        .file-tab-icon {
+            margin-right: 8px;
+            font-size: 1em;
+            color: #3498db;
+        }
+        .add-tab {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: transparent;
+            color: #666;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: 4px;
+            cursor: pointer;
+            font-size: 1.2em;
+            transition: all 0.2s;
+        }
+        .add-tab:hover {
+            background: rgba(255,255,255,0.7);
+        }
+        
+        /* Content area */
+        .container {
+            max-width: 900px;
+            margin: 20px auto;
+            background: #fff;
+            padding: 2.5em 2em;
+            border-radius: 14px;
+            box-shadow: 0 4px 24px rgba(44,62,80,0.08);
+            margin-bottom: 24px;
+        }
+        h2, h3, h4 { 
+            color: #3498db;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+        .panel-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+        .panel-title i {
+            font-size: 1.5em;
+            color: #3498db;
+        }
+        .processing-status {
+            background: #eef2f7;
+            border-left: 4px solid #3498db;
+            padding: 1em;
+            margin-bottom: 1em;
+            border-radius: 6px;
+        }
+        .status-log {
+            margin: 8px 0;
+            padding: 8px 12px;
+            background: rgba(255,255,255,0.8);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+        }
+        .status-log.in-progress {
+            border-left: 3px solid #3498db;
+            animation: pulse 1.5s infinite;
+        }
+        .status-log.complete {
+            border-left: 3px solid #2ecc71;
+        }
+        .status-log.error {
+            border-left: 3px solid #e74c3c;
+        }
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(52, 152, 219, 0.3);
+            border-radius: 50%;
+            border-top-color: #3498db;
+            margin-right: 10px;
+            animation: spinner 1s linear infinite;
+        }
+        @keyframes spinner {
+            to {transform: rotate(360deg);}
+        }
+        @keyframes pulse {
+            0% {background-color: rgba(255,255,255,0.8);}
+            50% {background-color: rgba(52, 152, 219, 0.1);}
+            100% {background-color: rgba(255,255,255,0.8);}
+        }
+        .timer {
+            margin-left: auto;
+            color: #7f8c8d;
+            font-size: 0.85em;
+        }
+        .risk-section {
+            background: #f7faff;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+            padding: 24px 20px;
+            margin-bottom: 24px;
+        }
+        .risk-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .action-button {
+            background: linear-gradient(90deg, #3498db 60%, #2980b9 100%);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            font-weight: 600;
+            font-size: 1em;
+            transition: background 0.2s;
+        }
+        .action-button:hover {
+            background: linear-gradient(90deg, #2980b9 60%, #3498db 100%);
+        }
+        .risk-bar {
+            display: flex;
+            height: 24px;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 10px;
+            box-shadow: 0 1px 4px rgba(44,62,80,0.06);
+        }
+        .clause-item {
+            transition: all 0.2s ease;
+            border-radius: 8px;
+            margin-bottom: 18px;
+            box-shadow: 0 1px 4px rgba(44,62,80,0.04);
+            background: #fff;
+            padding: 16px 14px;
+            border-left: 6px solid #e0e0e0;
+            position: relative;
+            cursor: pointer;
+        }
+        .clause-item:hover {
+            box-shadow: 0 3px 12px rgba(44,62,80,0.10);
+            transform: translateY(-2px);
+        }
+        .clause-item.high {
+            border-left: 6px solid #e74c3c;
+        }
+        .clause-item.medium {
+            border-left: 6px solid #f39c12;
+        }
+        .clause-item.low {
+            border-left: 6px solid #2ecc71;
+        }
+        .remove-clause {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            color: #aaa;
+            cursor: pointer;
+            font-size: 1.1em;
+            transition: color 0.2s;
+            display: none;
+        }
+        .clause-item:hover .remove-clause {
+            display: block;
+        }
+        .remove-clause:hover {
+            color: #e74c3c;
+        }
+        .tag-label {
+            background: #eef2f7;
+            padding: 4px 8px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 500;
+            margin-right: 4px;
+            color: #3498db;
+            display: inline-block;
+            margin-bottom: 4px;
+        }
+        .risk-label {
+            display: inline-flex;
+            align-items: center;
+            font-weight: 600;
+            font-size: 1.05em;
+        }
+        .risk-label.high { color: #e74c3c; }
+        .risk-label.medium { color: #f39c12; }
+        .risk-label.low { color: #2ecc71; }
+        .risk-icon {
+            font-size: 1.2em;
+            margin-right: 6px;
+        }
+        .expandable {
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+            max-height: 120px;
+        }
+        .expandable.expanded {
+            max-height: 500px;
+        }
+        .expand-button {
+            background: none;
+            border: none;
+            color: #3498db;
+            cursor: pointer;
+            font-size: 0.9em;
+            padding: 4px 8px;
+            margin-top: 8px;
+            display: inline-block;
+            text-decoration: underline;
+        }
+        button {
+            transition: all 0.2s;
+        }
+        button:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+        button:active {
+            transform: translateY(1px);
+        }
+        .summary-card {
+            background: #fffceb;
+            border-radius: 10px;
+            padding: 1.2em 1em;
+            margin-bottom: 1.5em;
+            box-shadow: 0 1px 4px rgba(44,62,80,0.04);
+        }
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #ddd;
+        }
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            font-weight: 600;
+            color: #7f8c8d;
+            transition: all 0.3s;
+        }
+        .tab.active {
+            color: #3498db;
+            border-bottom-color: #3498db;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .filter-option {
+            margin-right: 5px;
+            margin-bottom: 5px;
+            background: #f1f1f1;
+            border: none;
+            border-radius: 20px;
+            padding: 6px 12px;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .filter-option.active {
+            background: #3498db;
+            color: white;
+        }
+        .filter-option.high {
+            background: rgba(231, 76, 60, 0.15);
+            color: #e74c3c;
+        }
+        .filter-option.high.active {
+            background: #e74c3c;
+            color: white;
+        }
+        .filter-option.medium {
+            background: rgba(243, 156, 18, 0.15);
+            color: #f39c12;
+        }
+        .filter-option.medium.active {
+            background: #f39c12;
+            color: white;
+        }
+        .filter-option.low {
+            background: rgba(46, 204, 113, 0.15);
+            color: #2ecc71;
+        }
+        .filter-option.low.active {
+            background: #2ecc71;
+            color: white;
+        }
+        .search-box {
+            display: flex;
+            margin-bottom: 15px;
+        }
+        .search-box input {
+            flex-grow: 1;
+            padding: 8px 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px 0 0 6px;
+            font-family: 'Inter', sans-serif;
+        }
+        .search-box button {
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 0 6px 6px 0;
+            padding: 8px 15px;
+            cursor: pointer;
+        }
+        .clause-detail {
+            margin-top: 10px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 10px;
+        }
+        .detail-item {
+            border-top: 1px solid #eee;
+            padding-top: 5px;
+        }
+        .detail-item strong {
+            color: #2c3e50;
+        }
+        .summary-textarea {
+            width: 100%;
+            height: 150px;
+            border: 1px solid #ddd;
+            padding: 0.5em;
+            font-family: 'Inter', monospace;
+            white-space: pre-wrap;
+            background: #fffbe6;
+            border-radius: 6px;
+            resize: vertical;
+        }
+        .summary-container {
+            width: 100%;
+            border: 1px solid #ddd;
+            padding: 1.5em;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            margin-bottom: 1.5em;
+        }
+        .summary-content {
+            font-size: 1em;
+            line-height: 1.6;
+            margin: 0;
+            color: #333;
+            white-space: pre-line;
+        }
+        .top-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .export-options {
+            display: flex;
+            gap: 10px;
+        }
+        .export-button {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            background: #f1f1f1;
+            color: #333;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 12px;
+            font-size: 0.9em;
+            cursor: pointer;
+        }
+        .export-button:hover {
+            background: #e8e8e8;
+            transform: translateY(-1px);
+        }
+        .delete-file-button {
+            background: #f8d7da;
+            color: #721c24;
+            border: none;
+            border-radius: 6px;
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 20px;
+        }
+        .delete-file-button:hover {
+            background: #f5c6cb;
+        }
+        .button-feedback {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            background: rgba(52, 152, 219, 0.9);
+            color: white;
+            border-radius: 6px;
+            font-weight: 500;
+            z-index: 1000;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .button-feedback.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .no-results {
+            text-align: center;
+            padding: 40px 20px;
+            color: #7f8c8d;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        @media (max-width: 768px) {
+            .container { padding: 1.2em 1em; }
+            .risk-section { padding: 1.2em 1em; }
+            .clause-detail {
+                grid-template-columns: 1fr;
+            }
+        }
+        .risk-bar-segment {
+            height: 100%;
+        }
+        .risk-bar-segment.high {
+            background-color: #e74c3c;
+        }
+        .risk-bar-segment.medium {
+            background-color: #f39c12;
+        }
+        .risk-bar-segment.low {
+            background-color: #2ecc71;
+        }
+        .clause-consequence.high {
+            color: #e74c3c;
+        }
+        .clause-consequence.medium {
+            color: #f39c12;
+        }
+        .clause-consequence.low {
+            color: #2ecc71;
+        }
+        .pdf-container {
+            width: 100%;
+            height: 600px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+            margin-bottom: 20px;
+        }
+        .pdf-canvas-container {
+            position: relative;
+            overflow: auto;
+            height: 100%;
+        }
+        .pdf-page {
+            position: relative;
+            margin: 0 auto;
+            box-shadow: 0 0 8px rgba(0,0,0,0.1);
+        }
+        .text-layer {
+            position: absolute;
+            left: 0;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            color: transparent;
+            overflow: hidden;
+        }
+        .text-layer > span {
+            position: absolute;
+            white-space: pre;
+            cursor: text;
+            transform-origin: 0% 0%;
+        }
+        .highlight-layer {
+            position: absolute;
+            left: 0;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+        }
+        .text-highlight {
+            position: absolute;
+            border-radius: 2px;
+            opacity: 0.3;
+            pointer-events: auto;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        .text-highlight.high {
+            background-color: #e74c3c;
+            opacity: 0.4;
+            border: 1px solid rgba(231, 76, 60, 0.7);
+        }
+        .text-highlight.medium {
+            background-color: #f39c12;
+            opacity: 0.4;
+            border: 1px solid rgba(243, 156, 18, 0.7);
+        }
+        .text-highlight.low {
+            background-color: #2ecc71;
+            opacity: 0.4;
+            border: 1px solid rgba(46, 204, 113, 0.7);
+        }
+        .text-highlight:hover {
+            opacity: 0.6;
+        }
+        .highlight-tooltip {
+            position: absolute;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 3px 14px rgba(0,0,0,0.2);
+            padding: 15px;
+            max-width: 350px;
+            z-index: 1000;
+            display: none;
+            font-size: 14px;
+            border-top: 4px solid #3498db;
+            animation: tooltip-appear 0.3s ease-out;
+        }
+        
+        .highlight-tooltip.high {
+            border-top-color: #e74c3c;
+        }
+        
+        .highlight-tooltip.medium {
+            border-top-color: #f39c12;
+        }
+        
+        .highlight-tooltip.low {
+            border-top-color: #2ecc71;
+        }
+        
+        @keyframes tooltip-appear {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .tooltip-header {
+            font-weight: bold;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .tooltip-risk-badge {
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            color: white;
+        }
+        
+        .tooltip-risk-badge.high {
+            background-color: #e74c3c;
+        }
+        
+        .tooltip-risk-badge.medium {
+            background-color: #f39c12;
+        }
+        
+        .tooltip-risk-badge.low {
+            background-color: #2ecc71;
+        }
+        
+        .tooltip-content {
+            line-height: 1.5;
+            margin-bottom: 8px;
+        }
+        
+        .tooltip-details {
+            border-top: 1px solid #eee;
+            padding-top: 8px;
+            margin-top: 8px;
+        }
+        
+        .tooltip-detail-item {
+            display: flex;
+            margin-bottom: 5px;
+        }
+        
+        .tooltip-detail-label {
+            font-weight: 600;
+            min-width: 100px;
+        }
+        
+        .tooltip-detail-value {
+            flex: 1;
+        }
+        .pdf-controls {
+            padding: 10px;
+            background: #f1f1f1;
+            display: flex;
+            gap: 10px;
+            border-radius: 8px 8px 0 0;
+        }
+        .pdf-page-control {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .pdf-control-btn {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 4px 8px;
+            cursor: pointer;
+        }
+        .clause-risk-high { background-color: #e74c3c; }
+        .clause-risk-medium { background-color: #f39c12; }
+        .clause-risk-low { background-color: #2ecc71; }
+        
+        /* New Risk Score Styles */
+        .risk-score-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 5px 0;
+        }
+        
+        .risk-score {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            color: white;
+            font-weight: 600;
+            font-size: 0.85em;
+            min-width: 60px;
+            text-align: center;
+        }
+        
+        .risk-category-label {
+            font-size: 0.8em;
+            color: #666;
+            font-weight: 500;
+        }
+        
+        .scoring-breakdown {
+            margin-top: 12px;
+            border: 1px solid #e1e8ed;
+            border-radius: 6px;
+            background: #f8f9fa;
+        }
+        
+        .scoring-breakdown summary {
+            padding: 8px 12px;
+            cursor: pointer;
+            user-select: none;
+            font-weight: 600;
+            color: #2c3e50;
+            background: #f1f3f4;
+            border-radius: 6px 6px 0 0;
+            transition: background-color 0.2s;
+        }
+        
+        .scoring-breakdown summary:hover {
+            background: #e9ecef;
+        }
+        
+        .scoring-breakdown[open] summary {
+            border-bottom: 1px solid #e1e8ed;
+            border-radius: 6px 6px 0 0;
+        }
+        
+        .score-details {
+            padding: 12px;
+            background: white;
+            border-radius: 0 0 6px 6px;
+        }
+        
+        .score-criterion {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 0;
+            border-bottom: 1px solid #f1f1f1;
+        }
+        
+        .score-criterion:last-child {
+            border-bottom: none;
+        }
+        
+        .score-value {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .calculation-formula {
+            margin-top: 8px;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            font-size: 0.85em;
+            color: #6c757d;
+            border-left: 3px solid #3498db;
+        }
+    </style>
+</head>
+<body>
+    <!-- Data initialization - clean way to pass template data to JavaScript -->
+    <script type="text/javascript">
+        // Initialize variables with safe defaults
+        var clausesData = [];
+        var riskCounts = { High: 0, Medium: 0, Low: 0 };
+        var filename = "";
+        var filepath = "";
+        var pdfPath = "";
+        
+        // Safely populate clausesData
+        {% if clauses and clauses|length > 0 %}
+        try {
+            var rawClausesData = {{ clauses|tojson|safe }};
+            // Clean the data to handle undefined/null values
+            clausesData = rawClausesData.map(function(clause, index) {
+                return {
+                    id: clause.id || index + 1,
+                    type: clause.type || 'Unknown Risk',
+                    risk: clause.risk || 'Medium',
+                    risk_score: clause.risk_score || 50,
+                    risk_category: clause.risk_category || clause.risk || 'Warning',
+                    clause: clause.clause || '',
+                    consequences: clause.consequences || 'Not specified',
+                    amount: clause.amount || 'Not specified',
+                    deadline: clause.deadline || 'Not specified',
+                    responsible_party: clause.responsible_party || 'Not specified',
+                    likelihood: clause.likelihood || 'Not specified',
+                    mitigation: clause.mitigation || 'Not specified',
+                    scoring_breakdown: clause.scoring_breakdown || null,
+                    textOffsets: clause.textOffsets || null,
+                    contextSnippet: clause.contextSnippet || '',
+                    highlight_text: clause.highlight_text || clause.clause || '',
+                    original_text: clause.original_text || clause.clause || ''
+                };
+            });
+            console.log('Successfully loaded', clausesData.length, 'clauses');
+        } catch (e) {
+            console.error('Error loading clauses data:', e);
+            clausesData = [];
+        }
+        {% endif %}
+        
+        // Safely populate risk counts
+        {% if risk_counts %}
+        try {
+            var rawRiskCounts = {{ risk_counts|tojson|safe }};
+            riskCounts = {
+                High: rawRiskCounts.High || 0,
+                Medium: rawRiskCounts.Medium || 0,
+                Low: rawRiskCounts.Low || 0
+            };
+        } catch (e) {
+            console.error('Error loading risk counts:', e);
+        }
+        {% endif %}
+        
+        // Set filename and paths
+        {% if filename %}
+        filename = "{{ filename|e }}";
+        {% endif %}
+        
+        {% if filepath %}
+        filepath = "{{ filepath|e }}";
+        pdfPath = "/uploads/" + filename;
+        {% endif %}
+    </script>
+    
+    <!-- Chrome-style tabs UI -->
+    <div class="tabs-container">
+        <div class="file-tab active">
+            <span class="file-tab-icon">📄</span>
+            <span class="file-tab-name" id="fileTabName"></span>
+            <span class="file-tab-close" id="deleteFileBtn">×</span>
+        </div>
+        <div class="add-tab" onclick="window.location.href='/upload'">+</div>
+    </div>
+
+    {% if status_logs %}
+    <div class="container processing-status">
+        <div class="panel-title">
+            <span>🚀</span>
+            <h4>Processing Status
+                {% if processing_time %}
+                <span class="completion-time">(Completed in {{ processing_time }} seconds)</span>
+                {% endif %}
+            </h4>
+        </div>
+        <div id="processingStatus">
+            {% for log in status_logs %}
+                <div class="status-log complete">
+                    <span>✅ {{ log }}</span>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="container">
+        <div class="top-actions">
+            <h2>Contract Analysis Results</h2>
+            <div class="export-options">
+                <button class="export-button" onclick="exportToPDF()">
+                    <span>📄</span> Export to PDF
+                </button>
+                <button class="export-button" onclick="printSummary()">
+                    <span>🖨️</span> Print Summary
+                </button>
+                <button class="export-button" onclick="deleteFileConfirm()">
+                    <span>🗑️</span> Delete & Upload New
+                </button>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <div class="tab active" data-tab="summary">Summary</div>
+            <div class="tab" data-tab="risks">Risk Analysis</div>
+            <div class="tab" data-tab="text">Full Text</div>
+        </div>
+
+        {% if summary %}
+        <div class="tab-content active" id="summary-tab">
+            <div class="panel-title">
+                <span>📝</span>
+                <h3>Contract Summary</h3>
+            </div>
+            <div class="summary-container">
+                <p class="summary-content">{{ summary }}</p>
+            </div>
+            
+            {% set high_count = clauses|selectattr('risk', 'eq', 'High')|list|length %}
+            {% set med_count = clauses|selectattr('risk', 'eq', 'Medium')|list|length %}
+            {% set low_count = clauses|selectattr('risk', 'eq', 'Low')|list|length %}
+            {% set total_count = clauses|length %}
+            
+            <div style="margin: 20px 0; background-color: #f8f9fa; padding: 15px; border-radius: 8px;">
+                <div style="font-weight: bold; margin-bottom: 10px;">Risk Overview:</div>
+                <div class="risk-bar">
+                    {% if total_count > 0 %}
+                    <div id="high-risk-bar" class="risk-bar-segment high" data-count="{{ high_count }}" data-total="{{ total_count }}"></div>
+                    <div id="medium-risk-bar" class="risk-bar-segment medium" data-count="{{ med_count }}" data-total="{{ total_count }}"></div>
+                    <div id="low-risk-bar" class="risk-bar-segment low" data-count="{{ low_count }}" data-total="{{ total_count }}"></div>
+                    {% else %}
+                    <div style="background-color: #eee; height: 100%; width: 100%"></div>
+                    {% endif %}
+                </div>
+                <div class="risk-counts" style="display: flex; justify-content: space-between; font-size: 0.98em; margin-top: 10px;">
+                    <div><span style="color: #e74c3c; font-weight: bold;">{{ high_count }}</span> High Risk</div>
+                    <div><span style="color: #f39c12; font-weight: bold;">{{ med_count }}</span> Medium Risk</div>
+                    <div><span style="color: #2ecc71; font-weight: bold;">{{ low_count }}</span> Low Risk</div>
+                </div>
+            </div>
+            
+            {% if high_count > 0 %}
+            <div class="panel-title" style="margin-top: 30px;">
+                <span>⚠️</span>
+                <h4>Key High Risk Items</h4>
+            </div>
+            <div>
+                {% for clause in clauses %}
+                    {% if clause.risk == 'High' %}
+                    <div class="clause-item high">
+                        <button class="remove-clause" onclick="removeClause(this)" title="Remove this clause">×</button>
+                        <div class="risk-label high">
+                            <span class="risk-icon">⚠️</span>
+                            {{ clause.type }}
+                        </div>
+                        <div style="font-size: 0.98em; margin-top: 5px;">
+                            {{ clause.clause }}
+                        </div>
+                    </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <div class="tab-content" id="risks-tab">
+            <div class="panel-title">
+                <span>🔍</span>
+                <h3>Risk Analysis</h3>
+            </div>
+            
+            <div style="display: flex; flex-wrap: wrap; margin-bottom: 20px; gap: 20px;">
+                <div style="width: 320px; min-width: 220px;">
+                    <canvas id="riskChart" width="300" height="200"></canvas>
+                </div>
+                <div style="flex: 1; min-width: 220px;">
+                    <div style="margin-bottom: 15px;">
+                        <div style="font-weight: 600; margin-bottom: 10px;">Filter by risk level:</div>
+                        <button class="filter-option active" data-filter="all">All Clauses</button>
+                        <button class="filter-option high" data-filter="High">High Risk</button>
+                        <button class="filter-option medium" data-filter="Medium">Medium Risk</button>
+                        <button class="filter-option low" data-filter="Low">Low Risk</button>
+                    </div>
+                    
+                    <div class="search-box">
+                        <input type="text" id="searchInput" placeholder="Search clauses...">
+                        <button onclick="searchClauses()">Search</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="clause-list">
+                {% if clauses %}
+                    {% for clause in clauses %}
+                    <div class="clause-item {{ clause.risk|lower }}" data-risk="{{ clause.risk }}" data-clause-id="{{ clause.id }}">
+                        <div class="clause-header">
+                            <div class="clause-title-section">
+                                {% if clause.business_title %}
+                                <h4 class="clause-business-title">{{ clause.business_title }}</h4>
+                                {% endif %}
+                                <div class="clause-meta">
+                                    <span class="clause-category">{{ clause.risk_category or clause.type }}</span>
+                                    
+                                    <!-- Risk Score Display (0-100) -->
+                                    {% if clause.risk_score is defined and clause.risk_score is not none %}
+                                    <div class="risk-score-container">
+                                        <span class="risk-score" 
+                                              style="background-color: {% if clause.risk_score <= 30 %}#2ecc71{% elif clause.risk_score <= 69 %}#f39c12{% else %}#e74c3c{% endif %};">
+                                            {{ clause.risk_score }}/100
+                                        </span>
+                                        <span class="risk-category-label">{{ clause.risk_category or clause.risk }}</span>
+                                    </div>
+                                    {% else %}
+                                    <!-- Fallback to old system -->
+                                    <span class="clause-risk clause-risk-{{ clause.severity|lower or clause.risk|lower }}">{{ clause.severity or clause.risk }}</span>
+                                    {% endif %}
+                                    
+                                    {% if clause.probability %}
+                                    <span class="clause-probability">{{ clause.probability }} Probability</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="clause-impact">
+                                {% if clause.financial_impact %}
+                                <div class="financial-impact">
+                                    <span class="impact-label">💰 Financial Impact:</span>
+                                    <span class="impact-value">{{ clause.financial_impact }}</span>
+                                </div>
+                                {% elif clause.amount and clause.amount != 'Not specified' %}
+                                <div class="financial-impact">
+                                    <span class="impact-label">💰 Amount:</span>
+                                    <span class="impact-value">{{ clause.amount }}</span>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="clause-content">
+                            {% if clause.trigger_conditions %}
+                            <div class="clause-trigger">
+                                <strong>⚠️ Triggered by:</strong> {{ clause.trigger_conditions }}
+                            </div>
+                            {% endif %}
+                            
+                            {% if clause.business_consequences %}
+                            <div class="clause-consequences">
+                                <strong>📊 Business Impact:</strong> {{ clause.business_consequences }}
+                            </div>
+                            {% elif clause.consequences %}
+                            <div class="clause-consequences">
+                                <strong>📊 Consequences:</strong> {{ clause.consequences }}
+                            </div>
+                            {% endif %}
+                            
+                            {% if clause.mitigation_actions %}
+                            <div class="clause-mitigation">
+                                <strong>🛡️ Recommended Actions:</strong> {{ clause.mitigation_actions }}
+                            </div>
+                            {% elif clause.mitigation %}
+                            <div class="clause-mitigation">
+                                <strong>🛡️ Risk Mitigation:</strong> {{ clause.mitigation }}
+                            </div>
+                            {% endif %}
+                            
+                            {% if clause.likelihood %}
+                            <div class="clause-likelihood">
+                                <strong>📈 Likelihood:</strong> {{ clause.likelihood }}
+                            </div>
+                            {% endif %}
+                            
+                            <!-- Risk Score Breakdown -->
+                            {% if clause.scoring_breakdown %}
+                            <details class="scoring-breakdown">
+                                <summary><strong>🎯 Risk Score Breakdown</strong></summary>
+                                <div class="score-details">
+                                    <div class="score-criterion">
+                                        <span>💰 Financial Impact:</span> 
+                                        <span class="score-value">{{ clause.scoring_breakdown.financial_impact }}/100</span>
+                                    </div>
+                                    <div class="score-criterion">
+                                        <span>🏢 Business Disruption:</span> 
+                                        <span class="score-value">{{ clause.scoring_breakdown.business_disruption }}/100</span>
+                                    </div>
+                                    <div class="score-criterion">
+                                        <span>⚖️ Legal Risk:</span> 
+                                        <span class="score-value">{{ clause.scoring_breakdown.legal_risk }}/100</span>
+                                    </div>
+                                    <div class="score-criterion">
+                                        <span>📊 Likelihood:</span> 
+                                        <span class="score-value">{{ clause.scoring_breakdown.likelihood }}/100</span>
+                                    </div>
+                                    <div class="score-criterion">
+                                        <span>🛠️ Mitigation Difficulty:</span> 
+                                        <span class="score-value">{{ clause.scoring_breakdown.mitigation_difficulty }}/100</span>
+                                    </div>
+                                    {% if clause.scoring_breakdown.calculation %}
+                                    <div class="calculation-formula">
+                                        <strong>Calculation:</strong> {{ clause.scoring_breakdown.calculation }}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </details>
+                            {% endif %}
+                            
+                            <div class="clause-details">
+                                {% if clause.deadline and clause.deadline != 'Not specified' %}
+                                <div class="clause-deadline">
+                                    <strong>⏰ Timeline:</strong> {{ clause.deadline }}
+                                </div>
+                                {% endif %}
+                                {% if clause.responsible_party and clause.responsible_party != 'Not specified' %}
+                                <div class="clause-responsible">
+                                    <strong>👤 Responsible:</strong> {{ clause.responsible_party }}
+                                </div>
+                                {% endif %}
+                            </div>
+                            
+                            {% if clause.related_clauses %}
+                            <div class="clause-source">
+                                <strong>📄 Related Contract Sections:</strong> {{ clause.related_clauses }}
+                            </div>
+                            {% elif clause.clause %}
+                            <div class="clause-source">
+                                <strong>📄 Contract Language:</strong> {{ clause.clause }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="clause-actions">
+                            <button class="expand-button" onclick="toggleExpand('clause-{{ clause.id }}')" title="Show full details">
+                                Show Details
+                            </button>
+                            <button class="remove-clause" onclick="removeClause(this)" title="Mark as reviewed">
+                                ✓ Reviewed
+                            </button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="no-results">
+                        <div style="font-size: 2em; margin-bottom: 10px;">📄</div>
+                        <div style="font-weight: 600; margin-bottom: 5px;">No risk clauses found</div>
+                        <div>The AI analysis did not identify any risk clauses in this contract.</div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Set document_id variable for the highlight button -->
+        {% with doc_id = document_id|default('') %}
+
+        <div class="tab-content" id="text-tab">
+            <div class="panel-title">
+                <span>📃</span>
+                <h3>Full Text with Highlighted Risks</h3>
+            </div>
+            
+            <div id="pdf-container" class="pdf-container">
+                <div class="pdf-controls">
+                    <div class="pdf-page-control">
+                        <button id="prev-page" class="pdf-control-btn">Previous</button>
+                        <span>Page <span id="page-num"></span> of <span id="page-count"></span></span>
+                        <button id="next-page" class="pdf-control-btn">Next</button>
+                    </div>
+                    <div>
+                        <button id="zoom-in" class="pdf-control-btn">Zoom In</button>
+                        <button id="zoom-out" class="pdf-control-btn">Zoom Out</button>
+                        {% if doc_id %}
+                        <a href="{{ url_for('view_pdf', document_id=doc_id) }}" class="pdf-control-btn" style="background-color: #3498db; color: white; text-decoration: none; border-radius: 4px; margin-left: 10px;" target="_blank">View with Highlights</a>
+                        {% endif %}
+                    </div>
+                </div>
+                <div id="pdf-canvas-container" class="pdf-canvas-container"></div>
+                <div id="highlight-tooltip" class="highlight-tooltip"></div>
+            </div>
+            
+            <div style="text-align: center; margin-top: 20px; display: flex; flex-direction: column; gap: 15px; align-items: center;">
+                <button class="delete-file-button" onclick="deleteFileConfirm()">
+                    <span>🗑️</span> Delete This File & Upload New
+                </button>
+                <div style="display: flex; gap: 15px; margin-top: 10px;">
+                    <a href="/upload"><button class="action-button">Upload Another Contract</button></a>
+                    <a href="/"><button class="action-button">Back to Home</button></a>
+                </div>
+            </div>
+        </div>
+
+        {% endwith %}
+    </div>
+
+    <div id="feedbackToast" class="button-feedback"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set the document title and file tab name
+            document.title = 'Contract Analysis - ' + filename;
+            document.getElementById('fileTabName').textContent = filename;
+            
+            // Setup the risk bar segments
+            const highRiskBar = document.getElementById('high-risk-bar');
+            const mediumRiskBar = document.getElementById('medium-risk-bar');
+            const lowRiskBar = document.getElementById('low-risk-bar');
+            
+            if (highRiskBar && mediumRiskBar && lowRiskBar) {
+                const highCount = parseInt(highRiskBar.getAttribute('data-count'), 10);
+                const medCount = parseInt(mediumRiskBar.getAttribute('data-count'), 10);
+                const lowCount = parseInt(lowRiskBar.getAttribute('data-count'), 10);
+                const total = parseInt(highRiskBar.getAttribute('data-total'), 10);
+                
+                if (total > 0) {
+                    highRiskBar.style.width = (highCount / total * 100) + '%';
+                    mediumRiskBar.style.width = (medCount / total * 100) + '%';
+                    lowRiskBar.style.width = (lowCount / total * 100) + '%';
+                }
+            }
+            
+            // Add click handlers to clause items for text navigation
+            const clauseItems = document.querySelectorAll('.clause-item');
+            console.log('Found', clauseItems.length, 'clause items to make clickable');
+            
+            clauseItems.forEach((item, index) => {
+                // Add visual indicator that item is clickable
+                item.style.cursor = 'pointer';
+                item.setAttribute('tabindex', '0'); // Make it keyboard accessible
+                
+                // Add click handler with error handling
+                item.addEventListener('click', function(e) {
+                    console.log('Clause clicked:', index, 'Target:', e.target.tagName, e.target.className);
+                    
+                    // Don't navigate if clicking on specific interactive elements
+                    if (e.target.closest('.remove-clause') || 
+                        e.target.closest('.expand-button') ||
+                        e.target.closest('.scoring-breakdown') ||
+                        e.target.closest('details') ||
+                        e.target.closest('summary') ||
+                        e.target.closest('button')) {
+                        console.log('Click ignored - interactive element');
+                        return;
+                    }
+                    
+                    // Ensure we have clause data
+                    if (!clausesData || index >= clausesData.length) {
+                        console.error('No clause data available for index:', index);
+                        return;
+                    }
+                    
+                    // Get the clause data
+                    const clauseData = clausesData[index];
+                    console.log('Navigating to clause:', clauseData.type);
+                    
+                    // Switch to text tab if not already active
+                    const textTab = document.querySelector('.tab[data-tab="text"]');
+                    if (textTab && !textTab.classList.contains('active')) {
+                        console.log('Switching to text tab first');
+                        textTab.click();
+                        
+                        // Short delay to allow tab content to load
+                        setTimeout(() => {
+                            navigateToHighlightedText(clauseData, index);
+                        }, 300);
+                    } else {
+                        // Already on text tab, navigate immediately
+                        console.log('Already on text tab, navigating immediately');
+                        navigateToHighlightedText(clauseData, index);
+                    }
+                });
+                
+                // Add keyboard support
+                item.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        this.click();
+                    }
+                });
+            });
+            
+            // Function to navigate to highlighted text
+            function navigateToHighlightedText(clauseData, index) {
+                // Find all highlights for this clause
+                const highlights = document.querySelectorAll(`.text-highlight[data-clause-index="${index}"]`);
+                
+                if (highlights.length > 0) {
+                    // Get the first highlight element
+                    const highlight = highlights[0];
+                    
+                    // Get the container
+                    const container = document.getElementById('pdf-canvas-container');
+                    
+                    // If not visible, we need to navigate to the right page first
+                    const page = highlight.closest('.pdf-page');
+                    if (page) {
+                        const pageNum = parseInt(page.id.replace('page-', ''), 10);
+                        if (pageNum !== pageNum) {
+                            // Navigate to page
+                            queueRenderPage(pageNum);
+                        }
+                    }
+                    
+                    // Scroll to the highlight with smooth animation
+                    setTimeout(() => {
+                        // Get highlight position relative to container
+                        const highlightRect = highlight.getBoundingClientRect();
+                        const containerRect = container.getBoundingClientRect();
+                        
+                        // Calculate target scroll position 
+                        const targetScrollTop = highlight.offsetTop - container.offsetTop - 100; // 100px padding
+                        
+                        // Smooth scroll to target
+                        container.scrollTo({
+                            top: targetScrollTop,
+                            behavior: 'smooth'
+                        });
+                        
+                        // Highlight the element by briefly increasing opacity
+                        highlight.style.opacity = '0.8';
+                        setTimeout(() => {
+                            highlight.style.opacity = '';
+                        }, 1500);
+                    }, 100);
+                }
+            }
+            
+            // Initialize chart.js if the element exists
+            const ctx = document.getElementById('riskChart');
+            if (ctx && typeof Chart !== 'undefined') {
+                new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['High Risk', 'Medium Risk', 'Low Risk'],
+                        datasets: [{
+                            data: [
+                                riskCounts.High || 0,
+                                riskCounts.Medium || 0,
+                                riskCounts.Low || 0
+                            ],
+                            backgroundColor: [
+                                '#e74c3c',
+                                '#f39c12',
+                                '#2ecc71'
+                            ],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    usePointStyle: true,
+                                    padding: 15
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const label = context.label || '';
+                                        const value = context.raw || 0;
+                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        const percentage = Math.round((value / total) * 100);
+                                        return `${label}: ${value} (${percentage}%)`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // Tab switching logic
+            document.querySelectorAll('.tabs .tab').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    // Remove active class from all tabs and tab content
+                    document.querySelectorAll('.tabs .tab').forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                    
+                    // Add active class to current tab and show appropriate content
+                    this.classList.add('active');
+                    const tabId = this.getAttribute('data-tab');
+                    document.getElementById(tabId + '-tab').classList.add('active');
+                    
+                    // Initialize PDF viewer if we're on text tab
+                    if (tabId === 'text' && !pdfDoc && pdfPath) {
+                        initPdfViewer();
+                    }
+                });
+            });
+            
+            // Risk filter buttons
+            document.querySelectorAll('.filter-option').forEach(option => {
+                option.addEventListener('click', function() {
+                    // Remove active class from all options
+                    document.querySelectorAll('.filter-option').forEach(o => o.classList.remove('active'));
+                    
+                    // Add active class to clicked option
+                    this.classList.add('active');
+                    
+                    // Get filter value
+                    const filter = this.getAttribute('data-filter');
+                    
+                    // Show/hide clauses based on filter
+                    document.querySelectorAll('.clause-item').forEach(item => {
+                        if (filter === 'all') {
+                            item.style.display = 'block';
+                        } else {
+                            const risk = item.getAttribute('data-risk');
+                            item.style.display = (risk === filter) ? 'block' : 'none';
+                        }
+                    });
+                });
+            });
+            
+            // Color-code risk labels and consequence text
+            document.querySelectorAll('.clause-consequence').forEach(item => {
+                const risk = item.getAttribute('data-risk').toLowerCase();
+                item.classList.add(risk.toLowerCase());
+            });
+            
+            // Initialize PDF.js when the text tab is clicked
+            const textTab = document.querySelector('.tab[data-tab="text"]');
+            if (textTab) {
+                textTab.addEventListener('click', function() {
+                    if (!pdfDoc && pdfPath) {
+                        initPdfViewer();
+                    }
+                });
+                
+                // Also initialize if we're already on the text tab
+                if (textTab.classList.contains('active') && !pdfDoc && pdfPath) {
+                    setTimeout(initPdfViewer, 500);
+                }
+            }
+        });
+        
+        // Set up delete button
+        document.getElementById('deleteFileBtn').addEventListener('click', function(event) {
+            event.stopPropagation();
+            deleteFileConfirm(filepath, filename);
+        });
+        
+        // Prevent details/summary clicks from bubbling up to clause item handler
+        document.querySelectorAll('.scoring-breakdown details').forEach(details => {
+            details.addEventListener('click', function(event) {
+                event.stopPropagation();
+            });
+        });
+        
+        document.querySelectorAll('.scoring-breakdown summary').forEach(summary => {
+            summary.addEventListener('click', function(event) {
+                event.stopPropagation();
+            });
+        });
+
+        // Remove a clause from display with feedback
+        function removeClause(button) {
+            const item = button.closest('.clause-item');
+            if (item) {
+                // Animate removal
+                item.style.opacity = '0';
+                setTimeout(() => {
+                    item.style.height = '0';
+                    item.style.margin = '0';
+                    item.style.padding = '0';
+                    item.style.overflow = 'hidden';
+                    
+                    setTimeout(() => {
+                        item.remove();
+                    }, 300);
+                }, 300);
+            }
+        }
+        
+        // Search functionality for clauses
+        function searchClauses() {
+            const searchText = document.getElementById('searchInput').value.toLowerCase();
+            const items = document.querySelectorAll('.clause-item');
+            
+            // If empty search, reset to current filter
+            if (!searchText.trim()) {
+                const activeFilter = document.querySelector('.filter-option.active');
+                const filter = activeFilter ? activeFilter.getAttribute('data-filter') : 'all';
+                
+                items.forEach(item => {
+                    if (filter === 'all') {
+                        item.style.display = 'block';
+                    } else {
+                        const risk = item.getAttribute('data-risk');
+                        item.style.display = (risk === filter) ? 'block' : 'none';
+                    }
+                });
+                return;
+            }
+            
+            // Apply search filter
+            let found = false;
+            items.forEach(item => {
+                const text = item.textContent.toLowerCase();
+                if (text.includes(searchText)) {
+                    item.style.display = 'block';
+                    found = true;
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+        
+        // Delete file confirmation
+        function deleteFileConfirm() {
+            if (confirm('Are you sure you want to delete this file? This action cannot be undone.')) {
+                window.location.href = '/delete/' + filename;
+            }
+        }
+        
+        function exportToPDF() {
+            alert('Export feature will be available in the next update.');
+        }
+        
+        function printSummary() {
+            window.print();
+        }
+        
+        // PDF Viewer Implementation
+        let pdfDoc = null;
+        let pageNum = 1;
+        let pageRendering = false;
+        let pageNumPending = null;
+        let scale = 1.0;
+        let highlights = [];
+        let pdfRenderTask = null;
+        
+        // Initialize PDF.js
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.5.141/build/pdf.worker.min.js';
+        
+        function initPdfViewer() {
+            if (!pdfPath) {
+                console.error('No PDF path available');
+                document.getElementById('pdf-canvas-container').innerHTML = 
+                    '<div style="padding:20px; text-align:center">PDF not available for viewing</div>';
+                return;
+            }
+            
+            // Load the PDF
+            pdfjsLib.getDocument(pdfPath).promise.then(function(pdf) {
+                pdfDoc = pdf;
+                document.getElementById('page-count').textContent = pdf.numPages;
+                
+                // Initial render
+                renderPage(pageNum);
+                
+                // Setup page navigation
+                document.getElementById('prev-page').addEventListener('click', onPrevPage);
+                document.getElementById('next-page').addEventListener('click', onNextPage);
+                document.getElementById('zoom-in').addEventListener('click', onZoomIn);
+                document.getElementById('zoom-out').addEventListener('click', onZoomOut);
+                
+                // Prepare clause highlights if we have clause data
+                if (clausesData && clausesData.length > 0) {
+                    prepareHighlights();
+                }
+            }).catch(function(error) {
+                console.error('Error loading PDF:', error);
+                document.getElementById('pdf-canvas-container').innerHTML = 
+                    `<div style="padding:20px; text-align:center">Error loading PDF: ${error.message}</div>`;
+            });
+        }
+
+        function renderPage(num) {
+            pageRendering = true;
+            document.getElementById('page-num').textContent = num;
+            
+            // Cancel any ongoing rendering
+            if (pdfRenderTask) {
+                pdfRenderTask.cancel();
+            }
+            
+            // Render the page
+            pdfDoc.getPage(num).then(function(page) {
+                const viewport = page.getViewport({ scale });
+                
+                // Create containers for this page
+                const pageContainer = document.createElement('div');
+                pageContainer.className = 'pdf-page';
+                pageContainer.id = `page-${num}`;
+                pageContainer.style.width = `${viewport.width}px`;
+                pageContainer.style.height = `${viewport.height}px`;
+                
+                // Canvas for PDF rendering
+                const canvas = document.createElement('canvas');
+                canvas.width = viewport.width;
+                canvas.height = viewport.height;
+                pageContainer.appendChild(canvas);
+                
+                // Text layer for selection
+                const textLayer = document.createElement('div');
+                textLayer.className = 'text-layer';
+                pageContainer.appendChild(textLayer);
+                
+                // Highlight layer
+                const highlightLayer = document.createElement('div');
+                highlightLayer.className = 'highlight-layer';
+                highlightLayer.id = `highlight-layer-${num}`;
+                pageContainer.appendChild(highlightLayer);
+                
+                // Clear container and add the page
+                const container = document.getElementById('pdf-canvas-container');
+                container.innerHTML = '';
+                container.appendChild(pageContainer);
+                
+                // Render the PDF page
+                const ctx = canvas.getContext('2d');
+                pdfRenderTask = page.render({
+                    canvasContext: ctx,
+                    viewport: viewport
+                });
+                
+                // Get the text content
+                const textContent = page.getTextContent();
+                
+                // Render both in parallel
+                Promise.all([pdfRenderTask.promise, textContent]).then(function([_, textContent]) {
+                    // Render text layer
+                    const textLayerDiv = textLayer;
+                    const textLayerRenderer = new pdfjsLib.TextLayerBuilder({
+                        textLayerDiv: textLayerDiv,
+                        pageIndex: page.pageIndex,
+                        viewport: viewport
+                    });
+                    
+                    textLayerRenderer.setTextContent(textContent);
+                    textLayerRenderer.render();
+                    
+                    // Add highlights for this page
+                    addHighlightsToPage(num, viewport);
+                    
+                    pageRendering = false;
+                    if (pageNumPending !== null) {
+                        renderPage(pageNumPending);
+                        pageNumPending = null;
+                    }
+                }).catch(function(error) {
+                    console.error('Error rendering page:', error);
+                    pageRendering = false;
+                });
+            });
+        }
+
+        function queueRenderPage(num) {
+            if (pageRendering) {
+                pageNumPending = num;
+            } else {
+                renderPage(num);
+            }
+        }
+
+        function onPrevPage() {
+            if (pageNum <= 1) return;
+            pageNum--;
+            queueRenderPage(pageNum);
+        }
+
+        function onNextPage() {
+            if (pageNum >= pdfDoc.numPages) return;
+            pageNum++;
+            queueRenderPage(pageNum);
+        }
+
+        function onZoomIn() {
+            scale = Math.min(scale * 1.2, 3.0);
+            renderPage(pageNum);
+        }
+
+        function onZoomOut() {
+            scale = Math.max(scale / 1.2, 0.5);
+            renderPage(pageNum);
+        }
+
+        function prepareHighlights() {
+            // Prepare highlights based on clause data
+            highlights = [];
+            
+            console.log('=== DEBUGGING HIGHLIGHTS ===');
+            console.log('clausesData:', clausesData);
+            console.log('Total clauses to highlight:', clausesData.length);
+            
+            {% if highlight_data %}
+            // Use the enhanced highlight data if available
+            const highlightData = {{ highlight_data|tojson|safe }};
+            console.log('Enhanced highlight_data available:', highlightData);
+            
+            if (highlightData && highlightData.length > 0) {
+                highlightData.forEach(highlight => {
+                    console.log('Processing enhanced highlight:', highlight);
+                    highlights.push({
+                        text: highlight.text,
+                        risk: highlight.risk,
+                        type: highlight.type,
+                        consequences: highlight.consequences,
+                        amount: highlight.amount,
+                        deadline: highlight.deadline
+                    });
+                });
+                console.log('Total enhanced highlights prepared:', highlights.length);
+                return;
+            }
+            {% endif %}
+            
+            // Fallback to using clause data directly
+            console.log('Using clause data for highlights (no enhanced data available)');
+            clausesData.forEach((clause, index) => {
+                console.log(`Clause ${index + 1}:`, {
+                    type: clause.type,
+                    exact_text: clause.exact_text,
+                    highlight_text: clause.highlight_text,
+                    original_text: clause.original_text,
+                    contextSnippet: clause.contextSnippet,
+                    clause: clause.clause
+                });
+                
+                // Try to get the best text for highlighting
+                let textToHighlight = clause.exact_text || 
+                                    clause.highlight_text || 
+                                    clause.original_text || 
+                                    clause.contextSnippet || 
+                                    clause.clause || '';
+                
+                if (textToHighlight && textToHighlight.trim()) {
+                    console.log(`Adding highlight for clause ${index + 1}:`, textToHighlight.substring(0, 100) + '...');
+                    highlights.push({
+                        text: textToHighlight,
+                        risk: clause.risk ? clause.risk.toLowerCase() : 'medium',
+                        type: clause.type,
+                        consequences: clause.consequences || 'Not specified',
+                        amount: clause.amount || 'Not specified',
+                        deadline: clause.deadline || 'Not specified'
+                    });
+                } else {
+                    console.warn(`No highlightable text found for clause ${index + 1}:`, clause.type);
+                }
+            });
+            
+            console.log('Total highlights prepared:', highlights.length);
+            console.log('Highlights array:', highlights);
+        }
+
+        function findMatchingSpans(textSpans, searchText) {
+            const matchingSpans = [];
+            const searchLower = searchText.toLowerCase();
+            
+            // Try to find exact matches first
+            textSpans.forEach(span => {
+                const spanText = span.textContent || '';
+                if (spanText.toLowerCase().includes(searchLower)) {
+                    matchingSpans.push(span);
+                }
+            });
+            
+            // If no exact matches, try word-by-word matching
+            if (matchingSpans.length === 0) {
+                const searchWords = searchText.split(/\s+/).filter(word => word.length > 3);
+                
+                textSpans.forEach(span => {
+                    const spanText = (span.textContent || '').toLowerCase();
+                    const wordMatches = searchWords.filter(word => 
+                        spanText.includes(word.toLowerCase())
+                    );
+                    
+                    if (wordMatches.length >= Math.max(1, Math.floor(searchWords.length * 0.5))) {
+                        matchingSpans.push(span);
+                    }
+                });
+            }
+            
+            return matchingSpans;
+        }
+
+        function addHighlightsToPage(pageNum, viewport) {
+            if (!highlights || highlights.length === 0) {
+                console.log('No highlights to add to page', pageNum);
+                return;
+            }
+            
+            console.log(`=== ADDING HIGHLIGHTS TO PAGE ${pageNum} ===`);
+            console.log('Number of highlights to process:', highlights.length);
+            
+            const textLayer = document.querySelector(`#page-${pageNum} .textLayer`);
+            const highlightLayer = document.querySelector(`#page-${pageNum} .highlightLayer`);
+            
+            if (!textLayer) {
+                console.warn(`No text layer found for page ${pageNum}`);
+                return;
+            }
+            
+            if (!highlightLayer) {
+                console.warn(`No highlight layer found for page ${pageNum}`);
+                return;
+            }
+            
+            console.log('Text layer found:', textLayer);
+            console.log('Highlight layer found:', highlightLayer);
+            
+            // Clear existing highlights
+            highlightLayer.innerHTML = '';
+            
+            // Get all text spans in the text layer
+            const textSpans = textLayer.querySelectorAll('span');
+            console.log(`Found ${textSpans.length} text spans on page ${pageNum}`);
+            
+            // Get all text content for this page
+            const pageText = textLayer.textContent || '';
+            console.log(`Page ${pageNum} text content length:`, pageText.length);
+            console.log(`Page ${pageNum} text preview:`, pageText.substring(0, 200) + '...');
+            
+            highlights.forEach((highlight, highlightIndex) => {
+                console.log(`\n--- Processing highlight ${highlightIndex + 1}: ${highlight.type} ---`);
+                console.log('Highlight text to find:', highlight.text.substring(0, 100) + '...');
+                
+                const risk = highlight.risk || 'medium';
+                const cleanSearchText = highlight.text.trim();
+                
+                if (cleanSearchText.length < 5) {
+                    console.warn('Skipping highlight - text too short:', cleanSearchText);
+                    return;
+                }
+                
+                // Try exact match first
+                let matchFound = false;
+                const exactMatch = pageText.indexOf(cleanSearchText);
+                if (exactMatch !== -1) {
+                    console.log('✅ Exact match found at position:', exactMatch);
+                    matchFound = true;
+                } else {
+                    console.log('❌ No exact match found');
+                    
+                    // Try case-insensitive match
+                    const caseInsensitiveMatch = pageText.toLowerCase().indexOf(cleanSearchText.toLowerCase());
+                    if (caseInsensitiveMatch !== -1) {
+                        console.log('✅ Case-insensitive match found at position:', caseInsensitiveMatch);
+                        matchFound = true;
+                    } else {
+                        console.log('❌ No case-insensitive match found');
+                        
+                        // Try word-by-word matching
+                        const words = cleanSearchText.split(/\s+/).filter(word => word.length > 3);
+                        console.log('Trying word matching with words:', words);
+                        
+                        let wordMatches = 0;
+                        words.forEach(word => {
+                            if (pageText.toLowerCase().includes(word.toLowerCase())) {
+                                wordMatches++;
+                                console.log(`✅ Found word: ${word}`);
+                            } else {
+                                console.log(`❌ Missing word: ${word}`);
+                            }
+                        });
+                        
+                        if (wordMatches >= Math.max(1, Math.floor(words.length * 0.6))) {
+                            console.log(`✅ Partial match found (${wordMatches}/${words.length} words)`);
+                            matchFound = true;
+                        } else {
+                            console.log(`❌ Insufficient word matches (${wordMatches}/${words.length} words)`);
+                        }
+                    }
+                }
+                
+                if (!matchFound) {
+                    console.warn(`No matches found for highlight ${highlightIndex + 1}: ${highlight.type}`);
+                    return;
+                }
+                
+                // Find matching spans and create highlights
+                const allMatchingSpans = findMatchingSpans(textSpans, cleanSearchText);
+                console.log(`Found ${allMatchingSpans.length} matching spans for highlighting`);
+                
+                if (allMatchingSpans.length > 0) {
+                    // Create highlight elements
+                    allMatchingSpans.slice(0, 5).forEach((span, spanIndex) => { // Limit to 5 highlights per clause
+                        const highlightDiv = document.createElement('div');
+                        highlightDiv.className = `text-highlight ${risk}`;
+                        highlightDiv.style.left = `${span.offsetLeft}px`;
+                        highlightDiv.style.top = `${span.offsetTop}px`;
+                        highlightDiv.style.width = `${span.offsetWidth}px`;
+                        highlightDiv.style.height = `${span.offsetHeight}px`;
+                        highlightDiv.setAttribute('data-type', highlight.type);
+                        highlightDiv.setAttribute('data-consequences', highlight.consequences);
+                        highlightDiv.setAttribute('data-risk', risk);
+                        highlightDiv.setAttribute('data-amount', highlight.amount || 'Not specified');
+                        highlightDiv.setAttribute('data-deadline', highlight.deadline || 'Not specified');
+                        highlightDiv.setAttribute('data-clause-index', highlightIndex.toString());
+                        
+                        // Add click handler to show tooltip
+                        highlightDiv.addEventListener('click', function(e) {
+                            showHighlightTooltip(e, highlight);
+                        });
+                        
+                        highlightLayer.appendChild(highlightDiv);
+                        console.log(`✅ Created highlight ${spanIndex + 1} for ${highlight.type}`);
+                    });
+                    
+                    console.log(`✅ Successfully added ${Math.min(allMatchingSpans.length, 5)} highlights for: ${highlight.type}`);
+                } else {
+                    console.warn(`❌ No spans found to highlight for: ${highlight.type}`);
+                }
+            });
+            
+            console.log(`=== FINISHED ADDING HIGHLIGHTS TO PAGE ${pageNum} ===`);
+        }
+
+        function findAndHighlightText(searchText, risk, spans, highlightLayer, highlight, highlightIndex) {
+            // Clean up the search text for better matching
+            const cleanSearchText = searchText.replace(/\s+/g, ' ').trim();
+            if (!cleanSearchText) return; // Skip empty text
+            
+            // Split search text into significant words (longer than 3 chars)
+            const significantWords = cleanSearchText.toLowerCase()
+                .split(/\s+/)
+                .filter(word => word.length > 3 && !['this', 'that', 'with', 'from', 'have'].includes(word));
+            
+            // Track all matching spans for this highlight
+            let allMatchingSpans = [];
+            
+            // APPROACH 1: Exact phrase match with consecutive spans
+            const tryExactPhraseMatch = () => {
+                let currentPhrase = '';
+                let phraseSpans = [];
+                
+                // Try to find consecutive spans forming our phrase
+                for (let i = 0; i < spans.length; i++) {
+                    const span = spans[i];
+                    const spanText = span.textContent.trim();
+                    
+                    if (!spanText) continue;
+                    
+                    currentPhrase += (currentPhrase ? ' ' : '') + spanText;
+                    phraseSpans.push(span);
+                    
+                    // Check if we have built up enough text for a match
+                    if (currentPhrase.toLowerCase().includes(cleanSearchText.toLowerCase())) {
+                        return [...phraseSpans]; // Return a copy of the matching spans
+                    }
+                    
+                    // If phrase is getting too long without a match, reset
+                    if (phraseSpans.length > 30 || currentPhrase.length > cleanSearchText.length * 3) {
+                        currentPhrase = '';
+                        phraseSpans = [];
+                    }
+                }
+                
+                return []; // No exact phrase match found
+            };
+            
+            // APPROACH 2: Match by significant words clustering
+            const trySignificantWordsMatch = () => {
+                if (significantWords.length === 0) return [];
+                
+                // Find all spans containing each significant word
+                const wordMatches = {};
+                
+                // First identify spans containing our significant words
+                spans.forEach(span => {
+                    const spanText = span.textContent.toLowerCase().trim();
+                    if (!spanText) return;
+                    
+                    significantWords.forEach(word => {
+                        if (spanText.includes(word)) {
+                            if (!wordMatches[word]) wordMatches[word] = [];
+                            wordMatches[word].push(span);
+                        }
+                    });
+                });
+                
+                // Count how many of our significant words were found
+                const foundWords = Object.keys(wordMatches);
+                if (foundWords.length === 0) return [];
+                
+                // If we found multiple words, look for spans that are close together
+                if (foundWords.length > 1) {
+                    // Get all spans for all found words
+                    const allSpans = foundWords.flatMap(word => wordMatches[word]);
+                    
+                    // Sort spans by their position in the document
+                    allSpans.sort((a, b) => {
+                        const aRect = a.getBoundingClientRect();
+                        const bRect = b.getBoundingClientRect();
+                        
+                        // First by page/vertical position
+                        if (aRect.top !== bRect.top) return aRect.top - bRect.top;
+                        // Then by horizontal position
+                        return aRect.left - bRect.left;
+                    });
+                    
+                    // Find clusters of spans that are close together
+                    const clusters = [];
+                    let currentCluster = [allSpans[0]];
+                    
+                    for (let i = 1; i < allSpans.length; i++) {
+                        const prevSpan = allSpans[i-1];
+                        const currSpan = allSpans[i];
+                        const prevRect = prevSpan.getBoundingClientRect();
+                        const currRect = currSpan.getBoundingClientRect();
+                        
+                        // If within reasonable distance (same line or next line)
+                        const verticalDistance = Math.abs(currRect.top - prevRect.top);
+                        if (verticalDistance < 50) {  // Within ~2 lines
+                            currentCluster.push(currSpan);
+                        } else {
+                            // Start a new cluster if too far
+                            if (currentCluster.length > 0) {
+                                clusters.push([...currentCluster]);
+                            }
+                            currentCluster = [currSpan];
+                        }
+                    }
+                    
+                    // Add the last cluster
+                    if (currentCluster.length > 0) {
+                        clusters.push(currentCluster);
+                    }
+                    
+                    // Return the largest cluster
+                    if (clusters.length > 0) {
+                        // Sort clusters by size (largest first)
+                        clusters.sort((a, b) => b.length - a.length);
+                        return clusters[0]; // Return largest cluster
+                    }
+                }
+                
+                // Fallback to using spans from the most frequent word
+                let bestWord = foundWords[0];
+                foundWords.forEach(word => {
+                    if (wordMatches[word].length > wordMatches[bestWord].length) {
+                        bestWord = word;
+                    }
+                });
+                
+                return wordMatches[bestWord];
+            };
+            
+            // APPROACH 3: Title/heading match (useful for section titles like "Eligibility Requirements")
+            const tryTitleMatch = () => {
+                // If the text looks like a heading/title (short, few words)
+                if (cleanSearchText.length < 30 && cleanSearchText.split(/\s+/).length <= 4) {
+                    for (let i = 0; i < spans.length; i++) {
+                        const span = spans[i];
+                        const spanText = span.textContent.trim();
+                        
+                        // Look for exact title matches
+                        if (spanText.toLowerCase() === cleanSearchText.toLowerCase()) {
+                            return [span];
+                        }
+                    }
+                }
+                return [];
+            };
+            
+            // Try all approaches in order
+            allMatchingSpans = tryExactPhraseMatch();
+            
+            if (allMatchingSpans.length === 0) {
+                allMatchingSpans = tryTitleMatch();
+            }
+            
+            if (allMatchingSpans.length === 0) {
+                allMatchingSpans = trySignificantWordsMatch();
+            }
+            
+            // APPROACH 4: Last resort - anything with any matching word
+            if (allMatchingSpans.length === 0 && significantWords.length > 0) {
+                // Just find any span with our most important word
+                const mainWord = significantWords[0]; // First word is often most distinctive
+                
+                for (let i = 0; i < spans.length; i++) {
+                    const span = spans[i];
+                    const spanText = span.textContent.toLowerCase();
+                    if (spanText.includes(mainWord)) {
+                        allMatchingSpans.push(span);
+                        // Get a few surrounding spans for context
+                        if (i > 0) allMatchingSpans.push(spans[i-1]);
+                        if (i < spans.length - 1) allMatchingSpans.push(spans[i+1]);
+                        break; // Just need one match for this approach
+                    }
+                }
+            }
+            
+            // Create highlights for the matching spans (if any)
+            if (allMatchingSpans.length > 0) {
+                // For large documents, limit to a reasonable number of highlights to avoid performance issues
+                const maxHighlightsPerClause = 10;
+                const highlightsToCreate = Math.min(allMatchingSpans.length, maxHighlightsPerClause);
+                
+                for (let i = 0; i < highlightsToCreate; i++) {
+                    const span = allMatchingSpans[i];
+                    
+                    // Skip if span is not valid
+                    if (!span || !span.offsetParent) continue;
+                    
+                    const highlightDiv = document.createElement('div');
+                    highlightDiv.className = `text-highlight ${risk}`;
+                    highlightDiv.style.left = `${span.offsetLeft}px`;
+                    highlightDiv.style.top = `${span.offsetTop}px`;
+                    highlightDiv.style.width = `${span.offsetWidth}px`;
+                    highlightDiv.style.height = `${span.offsetHeight}px`;
+                    highlightDiv.setAttribute('data-type', highlight.type);
+                    highlightDiv.setAttribute('data-consequences', highlight.consequences);
+                    highlightDiv.setAttribute('data-risk', risk);
+                    highlightDiv.setAttribute('data-amount', highlight.amount || 'Not specified');
+                    highlightDiv.setAttribute('data-deadline', highlight.deadline || 'Not specified');
+                    highlightDiv.setAttribute('data-clause-index', highlightIndex.toString());
+                    
+                    // Add click handler to show tooltip
+                    highlightDiv.addEventListener('click', function(e) {
+                        showHighlightTooltip(e, highlight);
+                    });
+                    
+                    highlightLayer.appendChild(highlightDiv);
+                }
+                
+                // If we had to limit highlights, add an indicator showing there are more
+                if (allMatchingSpans.length > maxHighlightsPerClause) {
+                    console.log(`Limited highlights for clause ${highlightIndex} (showing ${maxHighlightsPerClause} of ${allMatchingSpans.length})`);
+                }
+            } else {
+                console.log(`No matching spans found for highlight: "${cleanSearchText.substring(0, 30)}..."`);
+            }
+        }
+
+        function showHighlightTooltip(event, highlight) {
+            const tooltip = document.getElementById('highlight-tooltip');
+            
+            // Add appropriate risk class for styling
+            tooltip.className = 'highlight-tooltip';
+            tooltip.classList.add(highlight.risk);
+            
+            // Create an enhanced tooltip with formatted content
+            tooltip.innerHTML = `
+                <div class="tooltip-header">
+                    <span>${highlight.type}</span>
+                    <span class="tooltip-risk-badge ${highlight.risk}">${highlight.risk.toUpperCase()} RISK</span>
+                </div>
+                <div class="tooltip-content">${highlight.text}</div>
+                <div class="tooltip-details">
+                    <div class="tooltip-detail-item">
+                        <div class="tooltip-detail-label">Consequences:</div>
+                        <div class="tooltip-detail-value">${highlight.consequences}</div>
+                    </div>
+                    <div class="tooltip-detail-item">
+                        <div class="tooltip-detail-label">Amount:</div>
+                        <div class="tooltip-detail-value">${highlight.amount || 'Not specified'}</div>
+                    </div>
+                    <div class="tooltip-detail-item">
+                        <div class="tooltip-detail-label">Deadline:</div>
+                        <div class="tooltip-detail-value">${highlight.deadline || 'Not specified'}</div>
+                    </div>
+                </div>
+            `;
+            
+            // Position tooltip near the highlight
+            const tooltipWidth = 350; // Match max-width from CSS
+            const windowWidth = window.innerWidth;
+            
+            // Check if tooltip would go off-screen to the right
+            if (event.clientX + tooltipWidth + 20 > windowWidth) {
+                tooltip.style.left = `${event.clientX - tooltipWidth - 10}px`; // Position to the left
+            } else {
+                tooltip.style.left = `${event.clientX + 15}px`; // Position to the right
+            }
+            
+            tooltip.style.top = `${event.clientY + 15}px`;
+            tooltip.style.display = 'block';
+            
+            // Close tooltip when clicking outside
+            document.addEventListener('click', closeTooltip);
+        }
+
+        function closeTooltip(e) {
+            if (!e.target.closest('.text-highlight')) {
+                document.getElementById('highlight-tooltip').style.display = 'none';
+                document.removeEventListener('click', closeTooltip);
+            }
+        }
+
+        function getColorForRisk(risk) {
+            switch(risk) {
+                case 'high': return '#e74c3c';
+                case 'medium': return '#f39c12';
+                case 'low': return '#2ecc71';
+                default: return '#3498db';
+            }
+        }
+
+        // Toggle expand/collapse for clause details
+        function toggleExpand(id) {
+            const content = document.getElementById(id);
+            const button = content.nextElementSibling;
+            
+            if (content.classList.contains('expanded')) {
+                content.classList.remove('expanded');
+                button.textContent = 'Show more';
+            } else {
+                content.classList.add('expanded');
+                button.textContent = 'Show less';
+            }
+        }
+
+        // Show feedback toast
+        function showFeedback(message, duration = 3000) {
+            const toast = document.getElementById('feedbackToast');
+            if (toast) {
+                toast.textContent = message;
+                toast.classList.add('visible');
+                
+                setTimeout(() => {
+                    toast.classList.remove('visible');
+                }, duration);
+            }
+        }
+
+        // Make Enter key work with search
+        document.getElementById('searchInput')?.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                searchClauses();
+            }
+        });
+
+        // Add this function to load highlights via POST instead of URL parameters
+        function loadHighlightData() {
+            fetch(`/get_highlight_data/${documentId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'same-origin'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    console.error('Error loading highlight data:', data.error);
+                    return;
+                }
+                
+                // Set the highlights globally
+                highlights = data.highlight_data || [];
+                console.log(`Loaded ${highlights.length} highlights via POST`);
+                
+                // Re-highlight all visible pages
+                const viewer = document.getElementById('viewer');
+                if (viewer) {
+                    const pages = viewer.querySelectorAll('.page');
+                    pages.forEach((page, index) => {
+                        const pageNum = index + 1;
+                        const canvas = page.querySelector('canvas');
+                        if (canvas) {
+                            const viewport = page.pdfjsViewport;
+                            if (viewport) {
+                                addHighlightsToPage(pageNum, viewport);
+                            }
+                        }
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Failed to load highlight data:', error);
+            });
+        }
+
+        function highlightRisksInPDF() {
+            // Simpler, more reliable approach: Use PDF.js text layer + keyword search
+            console.log('Starting PDF highlighting with simplified approach');
+            
+            if (!clausesData || clausesData.length === 0) {
+                console.log('No clauses to highlight');
+                return;
+            }
+            
+            // Wait for PDF to be fully loaded
+            if (!pdfDoc) {
+                console.log('PDF not loaded yet, waiting...');
+                setTimeout(highlightRisksInPDF, 1000);
+                return;
+            }
+            
+            // For each page, search for risk keywords in the PDF.js text layer
+            for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
+                highlightRisksOnPage(pageNum);
+            }
+        }
+        
+        function highlightRisksOnPage(pageNum) {
+            const pageContainer = document.querySelector(`#page-${pageNum}`);
+            if (!pageContainer) return;
+            
+            const textLayer = pageContainer.querySelector('.textLayer');
+            if (!textLayer) return;
+            
+            // Get all text elements from PDF.js text layer (these have exact positioning)
+            const textElements = textLayer.querySelectorAll('span');
+            
+            clausesData.forEach((clause, clauseIndex) => {
+                // Extract keywords from the clause for searching
+                const keywords = extractKeywordsFromClause(clause);
+                
+                // Look for these keywords in the PDF text layer
+                keywords.forEach(keyword => {
+                    highlightKeywordInTextLayer(textElements, keyword, clause.risk, pageNum, clauseIndex);
+                });
+            });
+        }
+        
+        function extractKeywordsFromClause(clause) {
+            // Extract meaningful keywords/phrases from the clause for PDF search
+            const keywords = [];
+            
+            // Get text from various clause fields
+            const textSources = [
+                clause.exact_text,
+                clause.highlight_text, 
+                clause.original_text,
+                clause.contextSnippet,
+                clause.clause,
+                clause.type
+            ].filter(text => text && text.length > 10); // Only non-empty text
+            
+            textSources.forEach(text => {
+                // Extract monetary amounts (high priority for matching)
+                const moneyPattern = /\$[\d,]+\.?\d*|[\d,]+\.?\d*\s*(?:dollars?|USD)/gi;
+                const amounts = text.match(moneyPattern);
+                if (amounts) keywords.push(...amounts);
+                
+                // Extract percentages  
+                const percentPattern = /[\d,]+\.?\d*\s*%/gi;
+                const percentages = text.match(percentPattern);
+                if (percentages) keywords.push(...percentages);
+                
+                // Extract significant phrases (3+ words, no common words)
+                const words = text.split(/\s+/).filter(word => 
+                    word.length > 3 && 
+                    !['this', 'that', 'with', 'from', 'have', 'will', 'shall', 'upon', 'such'].includes(word.toLowerCase())
+                );
+                
+                // Create 3-word phrases for better matching
+                for (let i = 0; i <= words.length - 3; i++) {
+                    const phrase = words.slice(i, i + 3).join(' ');
+                    if (phrase.length > 15 && phrase.length < 100) {
+                        keywords.push(phrase);
+                    }
+                }
+                
+                // Add the first and last few words as potential matches
+                if (words.length >= 4) {
+                    keywords.push(words.slice(0, 4).join(' ')); // First 4 words
+                    keywords.push(words.slice(-4).join(' '));   // Last 4 words
+                }
+            });
+            
+            // Remove duplicates and sort by specificity (longer phrases first)
+            return [...new Set(keywords)].sort((a, b) => b.length - a.length).slice(0, 10);
+        }
+        
+        function highlightKeywordInTextLayer(textElements, keyword, riskLevel, pageNum, clauseIndex) {
+            const searchText = keyword.toLowerCase().trim();
+            if (!searchText || searchText.length < 5) return; // Skip very short keywords
+            
+            // Build combined text from all spans to search for our keyword
+            let combinedText = '';
+            let spanPositions = [];
+            
+            textElements.forEach((span, index) => {
+                const spanText = span.textContent || '';
+                spanPositions.push({
+                    start: combinedText.length,
+                    end: combinedText.length + spanText.length,
+                    element: span,
+                    index: index
+                });
+                combinedText += spanText + ' '; // Add space between spans
+            });
+            
+            // Find keyword in combined text
+            const matchIndex = combinedText.toLowerCase().indexOf(searchText);
+            if (matchIndex === -1) return; // Keyword not found on this page
+            
+            // Find which spans contain our match
+            const matchEnd = matchIndex + searchText.length;
+            const matchingSpans = spanPositions.filter(pos => 
+                pos.start <= matchEnd && pos.end >= matchIndex
+            );
+            
+            if (matchingSpans.length === 0) return;
+            
+            // Create highlight overlay for matching spans
+            matchingSpans.forEach(spanPos => {
+                createHighlightOverlay(spanPos.element, riskLevel, pageNum, clauseIndex, keyword);
+            });
+        }
+        
+        function createHighlightOverlay(textElement, riskLevel, pageNum, clauseIndex, keyword) {
+            // Get the exact position and size of the text element
+            const rect = textElement.getBoundingClientRect();
+            const pageContainer = document.querySelector(`#page-${pageNum}`);
+            const pageRect = pageContainer.getBoundingClientRect();
+            
+            // Create highlight overlay
+            const highlight = document.createElement('div');
+            highlight.className = `pdf-highlight pdf-highlight-${riskLevel.toLowerCase()}`;
+            highlight.style.position = 'absolute';
+            highlight.style.left = (rect.left - pageRect.left) + 'px';
+            highlight.style.top = (rect.top - pageRect.top) + 'px';
+            highlight.style.width = rect.width + 'px';
+            highlight.style.height = rect.height + 'px';
+            highlight.style.pointerEvents = 'none';
+            highlight.style.zIndex = '1';
+            
+            // Set highlight color based on risk level
+            const colors = {
+                high: 'rgba(231, 76, 60, 0.3)',   // Red
+                medium: 'rgba(243, 156, 18, 0.3)', // Orange  
+                low: 'rgba(46, 204, 113, 0.3)'     // Green
+            };
+            highlight.style.backgroundColor = colors[riskLevel.toLowerCase()] || colors.medium;
+            
+            // Add to page container
+            pageContainer.appendChild(highlight);
+            
+            console.log(`✅ Highlighted "${keyword.substring(0, 50)}..." on page ${pageNum}`);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ filename }} - PDF Viewer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        body { 
+            font-family: 'Inter', Arial, sans-serif; 
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(120deg, #f7faff 0%, #e3e9f7 100%);
+            color: #333;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .title {
+            font-size: 1.5em;
+            font-weight: 700;
+            color: #3498db;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn {
+            background: linear-gradient(90deg, #3498db 60%, #2980b9 100%);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.2s;
+        }
+        
+        .btn:hover {
+            background: linear-gradient(90deg, #2980b9 60%, #3498db 100%);
+            transform: translateY(-1px);
+        }
+        
+        .view-tabs {
+            display: flex;
+            border-bottom: 1px solid #ddd;
+            margin-bottom: 20px;
+        }
+        
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            font-weight: 600;
+            color: #7f8c8d;
+            transition: all 0.3s;
+        }
+        
+        .tab.active {
+            color: #3498db;
+            border-bottom-color: #3498db;
+        }
+        
+        .view-content {
+            display: none;
+        }
+        
+        .view-content.active {
+            display: block;
+        }
+        
+        .pdf-container {
+            width: 100%;
+            height: 700px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        
+        .risk-label {
+            display: inline-flex;
+            align-items: center;
+            font-weight: 600;
+            font-size: 1.05em;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            cursor: pointer;
+        }
+        
+        .risk-label.high { color: #e74c3c; }
+        .risk-label.medium { color: #f39c12; }
+        .risk-label.low { color: #2ecc71; }
+        
+        .risk-icon {
+            font-size: 1.2em;
+            margin-right: 6px;
+        }
+        
+        .text-content {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            white-space: pre-wrap;
+            line-height: 1.6;
+            max-height: 700px;
+            overflow-y: auto;
+        }
+        
+        .clause-container {
+            margin-bottom: 30px;
+        }
+        
+        .highlight-high {
+            background-color: rgba(231, 76, 60, 0.2);
+            padding: 2px 0;
+            border-radius: 3px;
+        }
+        
+        .highlight-medium {
+            background-color: rgba(243, 156, 18, 0.2);
+            padding: 2px 0;
+            border-radius: 3px;
+        }
+        
+        .highlight-low {
+            background-color: rgba(46, 204, 113, 0.2);
+            padding: 2px 0;
+            border-radius: 3px;
+        }
+        
+        .highlight-hidden {
+            background-color: transparent !important;
+        }
+        
+        .sidebar {
+            float: right;
+            width: 280px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-left: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        
+        .clause-link {
+            display: block;
+            padding: 8px 10px;
+            margin-bottom: 5px;
+            border-radius: 4px;
+            text-decoration: none;
+            color: #333;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        
+        .clause-link:hover {
+            background-color: #f5f5f5;
+        }
+        
+        .clause-link.high { border-left: 3px solid #e74c3c; }
+        .clause-link.medium { border-left: 3px solid #f39c12; }
+        .clause-link.low { border-left: 3px solid #2ecc71; }
+        
+        .clause-link.disabled {
+            opacity: 0.5;
+            text-decoration: line-through;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 10px;
+            }
+            .sidebar {
+                float: none;
+                width: auto;
+                margin-left: 0;
+                margin-bottom: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="title">{{ filename }}</div>
+            <div class="action-buttons">
+                <a href="{{ url_for('results', document_id=document_id) }}" class="btn">Back to Analysis</a>
+                <a href="{{ url_for('dashboard') }}" class="btn">Dashboard</a>
+            </div>
+        </div>
+        
+        <div class="view-tabs">
+            <div class="tab active" data-tab="text-view">Text View with Highlights</div>
+            <div class="tab" data-tab="pdf-view">PDF View</div>
+        </div>
+        
+        <div class="view-content active" id="text-view">
+            <div class="sidebar" id="clauses-sidebar">
+                <h3>Risk Clauses</h3>
+                <p>Click on a clause to jump to its location in the text:</p>
+                <!-- Clause links will be added here by JavaScript -->
+            </div>
+            
+            <div class="text-content" id="highlighted-text">
+                Loading document text...
+            </div>
+        </div>
+        
+        <div class="view-content" id="pdf-view">
+            <iframe class="pdf-container" src="/static/pdfjs/web/viewer.html?file={{ pdf_url }}&search={{ highlight_param }}&highlight=true"></iframe>
+        </div>
+    </div>
+    
+    <!-- Data containers (hidden) -->
+    <div id="original-text" style="display: none;">{{ text }}</div>
+    <div id="clauses-data" style="display: none;">{{ clauses|tojson }}</div>
+    <div id="highlight-terms" style="display: none;">{{ highlight_terms|tojson }}</div>
+    
+    <script>
+        // Tab switching
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                // Remove active class from all tabs and content
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.view-content').forEach(c => c.classList.remove('active'));
+                
+                // Add active class to clicked tab and content
+                this.classList.add('active');
+                const tabId = this.getAttribute('data-tab');
+                document.getElementById(tabId).classList.add('active');
+            });
+        });
+        
+        function addHighlightsToText(text, highlightTerms, clauses) {
+            let highlightedText = text;
+            const textContainer = document.getElementById('highlighted-text');
+            
+            // Check if we have text content
+            if (!text || text.trim() === "") {
+                textContainer.innerHTML = '<p>No text content could be extracted from this document. This could be due to the PDF containing scanned images without searchable text.</p>';
+                return;
+            }
+            
+            // Create DOM structure for highlighting
+            let textHTML = document.createElement('div');
+            const paragraphs = text.split(/\n\n+/); // Split on paragraph breaks
+            
+            // Process each paragraph
+            paragraphs.forEach((paragraph, pIndex) => {
+                if (paragraph.trim() === '') return;
+                
+                const p = document.createElement('p');
+                p.id = `p-${pIndex}`;
+                p.textContent = paragraph;
+                textHTML.appendChild(p);
+            });
+            
+            // First, try exact matches for each highlight term
+            let foundMatches = false;
+            
+            textContainer.innerHTML = textHTML.innerHTML;
+            
+            // Start with trying to find exact matches
+            highlightTerms.forEach((term, index) => {
+                const cleanTerm = term.replace(/\s+/g, ' ').trim();
+                if (cleanTerm.length < 5) return; // Skip very short terms
+                
+                // Try to find the term with exact matching
+                const regex = new RegExp(escapeRegExp(cleanTerm), 'gi');
+                const matches = [...text.matchAll(regex)];
+                
+                if (matches.length > 0) {
+                    foundMatches = true;
+                    
+                    // Replace all instances with highlighted version
+                    const clauseRisk = clauses[index]?.risk || 'medium';
+                    const clauseId = clauses[index]?.id || index;
+                    
+                    // Create a unique ID for this highlight
+                    const highlightId = `highlight-${clauseId}`;
+                    
+                    textContainer.innerHTML = textContainer.innerHTML.replace(
+                        regex, 
+                        `<span id="${highlightId}" class="highlight-${clauseRisk.toLowerCase()}">\$&</span>`
+                    );
+                }
+            });
+            
+            // If no exact matches were found, try fuzzy matching
+            if (!foundMatches) {
+                // Split the document into words and sentences
+                const textLower = text.toLowerCase();
+                const sentences = textLower.split(/[.!?]+\s+/);
+                
+                highlightTerms.forEach((term, index) => {
+                    // Clean up the term
+                    const cleanTerm = term.replace(/\s+/g, ' ').trim().toLowerCase();
+                    if (cleanTerm.length < 5) return; // Skip very short terms
+                    
+                    // Extract significant words from the term (words longer than 5 chars)
+                    const words = cleanTerm.split(/\s+/).filter(word => word.length > 5);
+                    
+                    if (words.length === 0) return; // No significant words to match
+                    
+                    // Try to find best matching sentence
+                    let bestMatch = null;
+                    let bestScore = 0;
+                    
+                    sentences.forEach(sentence => {
+                        // Calculate how many significant words match
+                        let score = 0;
+                        words.forEach(word => {
+                            if (sentence.includes(word)) {
+                                score += word.length; // Weight by word length
+                            }
+                        });
+                        
+                        // If this is the best match so far, keep it
+                        if (score > bestScore) {
+                            bestScore = score;
+                            bestMatch = sentence;
+                        }
+                    });
+                    
+                    // If we found a reasonably good match
+                    if (bestMatch && bestScore > 10) {
+                        const clauseRisk = clauses[index]?.risk || 'medium';
+                        const clauseId = clauses[index]?.id || index;
+                        
+                        // Create a unique ID for this highlight
+                        const highlightId = `highlight-${clauseId}`;
+                        
+                        // Find this sentence in the original text
+                        const sentenceRegex = new RegExp(escapeRegExp(bestMatch) + '[.!?]?', 'i');
+                        textContainer.innerHTML = textContainer.innerHTML.replace(
+                            sentenceRegex, 
+                            `<span id="${highlightId}" class="highlight-${clauseRisk.toLowerCase()}">\$&</span>`
+                        );
+                        
+                        foundMatches = true;
+                    }
+                });
+            }
+            
+            // If still no matches, notify the user
+            if (!foundMatches) {
+                // Add a note at the top explaining that no exact matches were found
+                textContainer.innerHTML = '<div style="background-color:#f8d7da; color:#721c24; padding:10px; margin-bottom:20px; border-radius:5px;">' +
+                    'No exact matches found for risk clauses in the document. This could be because the AI generated slightly different wording than exists in the document.' +
+                    '</div>' + textContainer.innerHTML;
+            }
+            
+            // Add links in the sidebar
+            const sidebar = document.getElementById('clauses-sidebar');
+            
+            // Clear out any existing links
+            while (sidebar.children.length > 2) {
+                sidebar.removeChild(sidebar.lastChild);
+            }
+            
+            // Add links for each clause
+            clauses.forEach(clause => {
+                const clauseId = clause.id;
+                const riskLevel = clause.risk.toLowerCase();
+                
+                const link = document.createElement('a');
+                link.id = `clause-${clauseId}`;
+                link.className = `clause-link ${riskLevel}`;
+                link.textContent = clause.type;
+                link.setAttribute('data-risk', riskLevel);
+                link.setAttribute('onclick', `highlightClauseAndScroll(${clauseId})`);
+                
+                sidebar.appendChild(link);
+            });
+        }
+        
+        // Helper function to escape special regex characters
+        function escapeRegExp(string) {
+            return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+        
+        // Function to toggle a highlight and scroll to it
+        function highlightClauseAndScroll(clauseId) {
+            const highlightEl = document.getElementById(`highlight-${clauseId}`);
+            const clauseLink = document.getElementById(`clause-${clauseId}`);
+            
+            if (highlightEl) {
+                // Toggle highlight visibility
+                highlightEl.classList.toggle('highlight-hidden');
+                
+                // Update link status
+                clauseLink.classList.toggle('disabled');
+                
+                // Scroll to the highlight if it's not hidden
+                if (!highlightEl.classList.contains('highlight-hidden')) {
+                    highlightEl.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'center'
+                    });
+                }
+            }
+        }
+        
+        // Jump to clause position when clicking on sidebar links
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('.clause-link')) {
+                const id = e.target.closest('.clause-link').getAttribute('href').substring(1);
+                const element = document.getElementById(id);
+                if (element) {
+                    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }
+        });
+        
+        // Fetch the full text content and add highlights
+        document.addEventListener('DOMContentLoaded', function() {
+            const highlightedText = document.getElementById('highlighted-text');
+            
+            // Show loading message
+            highlightedText.innerHTML = '<p>Loading text content with highlights...</p>';
+            
+            // Get document full text
+            fetch('/get_document_text/{{ document_id }}')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        addHighlightsToText(data.text, {{ highlight_terms|tojson }}, {{ clauses|tojson if clauses else '[]' }});
+                    } else {
+                        // Show error and offer to try OCR
+                        highlightedText.innerHTML = `
+                            <p>Error loading text content: ${data.error}</p>
+                            <p>This may be a scanned document without searchable text.</p>
+                            <button id="try-ocr" class="btn">Try Advanced OCR</button>
+                        `;
+                        
+                        // Add OCR button functionality
+                        document.getElementById('try-ocr').addEventListener('click', function() {
+                            this.disabled = true;
+                            this.textContent = 'Processing with OCR (this may take a while)...';
+                            
+                            fetch('/run_ocr/{{ document_id }}')
+                                .then(response => response.json())
+                                .then(ocrData => {
+                                    if (ocrData.success) {
+                                        addHighlightsToText(ocrData.text, {{ highlight_terms|tojson }}, {{ clauses|tojson if clauses else '[]' }});
+                                    } else {
+                                        highlightedText.innerHTML = `<p>OCR extraction failed: ${ocrData.error}</p>`;
+                                    }
+                                })
+                                .catch(error => {
+                                    highlightedText.innerHTML = `<p>OCR extraction error: ${error}</p>`;
+                                });
+                        });
+                    }
+                })
+                .catch(error => {
+                    highlightedText.innerHTML = `
+                        <p>Error loading text content: ${error}</p>
+                        <button id="reload" class="btn">Try Again</button>
+                    `;
+                    
+                    document.getElementById('reload').addEventListener('click', function() {
+                        window.location.reload();
+                    });
+                });
+        });
+    </script>
+</body>
+</html> 

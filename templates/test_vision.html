@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenAI Vision Test - {{ filename }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f7fa;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 2em;
+            font-weight: 700;
+        }
+
+        .header p {
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .test-section {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border-left: 4px solid #667eea;
+        }
+
+        .test-section h3 {
+            margin: 0 0 15px 0;
+            color: #2c3e50;
+            font-size: 1.3em;
+        }
+
+        .test-section p {
+            margin: 0 0 15px 0;
+            color: #6c757d;
+            line-height: 1.6;
+        }
+
+        .button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            display: inline-block;
+            text-decoration: none;
+        }
+
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .button.secondary {
+            background: #6c757d;
+        }
+
+        .button.success {
+            background: #28a745;
+        }
+
+        .button.danger {
+            background: #dc3545;
+        }
+
+        .results {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+            background: white;
+        }
+
+        .results.success {
+            border-color: #28a745;
+            background: #d4edda;
+        }
+
+        .results.error {
+            border-color: #dc3545;
+            background: #f8d7da;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .stat-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+            border: 1px solid #dee2e6;
+        }
+
+        .stat-value {
+            font-size: 1.5em;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+
+        .text-preview {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            line-height: 1.4;
+            white-space: pre-wrap;
+            margin-top: 15px;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        .info-box {
+            background: #e3f2fd;
+            border: 1px solid #bbdefb;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .info-box h4 {
+            margin: 0 0 10px 0;
+            color: #1976d2;
+        }
+
+        .quality-indicators {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 15px 0;
+        }
+
+        .quality-indicator {
+            padding: 10px;
+            border-radius: 6px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .quality-good { background: #d4edda; color: #155724; }
+        .quality-fair { background: #fff3cd; color: #856404; }
+        .quality-poor { background: #f8d7da; color: #721c24; }
+        .quality-high { background: #d1ecf1; color: #0c5460; }
+        .quality-medium { background: #ffeaa7; color: #8b7300; }
+        .quality-low { background: #fab1a0; color: #8b4513; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 OpenAI GPT-4o Vision Test</h1>
+            <p>Test the most advanced AI text extraction capabilities</p>
+        </div>
+        
+        <div class="content">
+            <a href="{{ url_for('dashboard') }}" class="back-link">← Back to Dashboard</a>
+            
+            <div class="info-box">
+                <h4>📄 Document: {{ filename }}</h4>
+                <p>This tool tests OpenAI's GPT-4o Vision model for extracting text from your PDF with near-perfect accuracy. 
+                   GPT-4o can understand complex layouts, tables, and handwritten text better than traditional OCR.</p>
+            </div>
+
+            <!-- API Connection Test -->
+            <div class="test-section">
+                <h3>🔌 Step 1: Test OpenAI API Connection</h3>
+                <p>First, let's verify that your OpenAI API key is working correctly.</p>
+                <button id="testConnection" class="button">Test API Connection</button>
+                <div id="connectionResults" class="results" style="display: none;"></div>
+            </div>
+
+            <!-- Vision Extraction Test -->
+            <div class="test-section">
+                <h3>👁️ Step 2: Test Vision Text Extraction</h3>
+                <p>Extract all text from your PDF using OpenAI's most advanced vision model (GPT-4o).</p>
+                <button id="testVision" class="button" disabled>Test Vision Extraction</button>
+                <div id="visionResults" class="results" style="display: none;"></div>
+            </div>
+
+            <!-- Back to Main Analysis -->
+            <div class="test-section">
+                <h3>🚀 Step 3: Run Full Analysis</h3>
+                <p>Once you've verified the extraction works well, run the complete contract analysis.</p>
+                <a href="{{ url_for('results', document_id=document_id) }}" class="button secondary">View Full Analysis</a>
+            </div>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Processing your request...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const documentId = "{{ document_id }}";
+        let connectionTestPassed = false;
+
+        function showLoading() {
+            document.getElementById('loading').style.display = 'block';
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        function showResults(elementId, data, isSuccess = true) {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            element.className = isSuccess ? 'results success' : 'results error';
+            
+            let html = '';
+            
+            if (isSuccess) {
+                html += `<h4>✅ ${data.message}</h4>`;
+                
+                if (data.api_response) {
+                    html += `<p><strong>API Response:</strong> ${data.api_response}</p>`;
+                }
+                
+                if (data.model_used) {
+                    html += `<p><strong>Model:</strong> ${data.model_used}</p>`;
+                }
+                
+                if (data.vision_model_configured) {
+                    html += `<p><strong>Vision Model:</strong> ${data.vision_model_configured}</p>`;
+                }
+                
+                if (data.stats) {
+                    html += '<div class="stats">';
+                    html += `<div class="stat-card"><div class="stat-value">${data.stats.character_count.toLocaleString()}</div><div class="stat-label">Characters</div></div>`;
+                    html += `<div class="stat-card"><div class="stat-value">${data.stats.word_count.toLocaleString()}</div><div class="stat-label">Words</div></div>`;
+                    html += `<div class="stat-card"><div class="stat-value">${data.stats.line_count.toLocaleString()}</div><div class="stat-label">Lines</div></div>`;
+                    html += `<div class="stat-card"><div class="stat-value">${data.stats.extraction_time_seconds}s</div><div class="stat-label">Extraction Time</div></div>`;
+                    html += '</div>';
+                }
+                
+                if (data.contract_analysis) {
+                    html += '<h5>📋 Contract Elements Found:</h5>';
+                    html += '<div class="stats">';
+                    Object.entries(data.contract_analysis).forEach(([key, value]) => {
+                        const label = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                        html += `<div class="stat-card"><div class="stat-value">${value}</div><div class="stat-label">${label}</div></div>`;
+                    });
+                    html += '</div>';
+                }
+                
+                if (data.document_type) {
+                    html += `<p><strong>Document Type:</strong> ${data.document_type}</p>`;
+                }
+                
+                if (data.quality_assessment) {
+                    html += '<h5>🎯 Quality Assessment:</h5>';
+                    html += '<div class="quality-indicators">';
+                    html += `<div class="quality-indicator quality-${data.quality_assessment.text_length.toLowerCase()}">Text Quality: ${data.quality_assessment.text_length}</div>`;
+                    html += `<div class="quality-indicator quality-${data.quality_assessment.contract_indicators.toLowerCase()}">Contract Detection: ${data.quality_assessment.contract_indicators}</div>`;
+                    html += '</div>';
+                }
+                
+                if (data.text_preview) {
+                    html += '<h5>📄 Text Preview:</h5>';
+                    html += `<div class="text-preview">${data.text_preview}</div>`;
+                }
+            } else {
+                html += `<h4>❌ ${data.message || 'Test Failed'}</h4>`;
+                html += `<p><strong>Error:</strong> ${data.error}</p>`;
+                
+                if (data.details) {
+                    html += `<p><strong>Details:</strong> ${data.details}</p>`;
+                }
+                
+                if (data.model_used) {
+                    html += `<p><strong>Model:</strong> ${data.model_used}</p>`;
+                }
+            }
+            
+            element.innerHTML = html;
+        }
+
+        // Test API Connection
+        document.getElementById('testConnection').addEventListener('click', async function() {
+            showLoading();
+            this.disabled = true;
+            
+            try {
+                const response = await fetch('/test_openai_connection');
+                const data = await response.json();
+                
+                showResults('connectionResults', data, data.success);
+                
+                if (data.success) {
+                    connectionTestPassed = true;
+                    document.getElementById('testVision').disabled = false;
+                    this.textContent = '✅ Connection Verified';
+                    this.className = 'button success';
+                } else {
+                    this.textContent = '❌ Connection Failed';
+                    this.className = 'button danger';
+                }
+            } catch (error) {
+                showResults('connectionResults', {
+                    message: 'Network Error',
+                    error: error.message
+                }, false);
+                this.textContent = '❌ Network Error';
+                this.className = 'button danger';
+            } finally {
+                hideLoading();
+                this.disabled = false;
+            }
+        });
+
+        // Test Vision Extraction
+        document.getElementById('testVision').addEventListener('click', async function() {
+            if (!connectionTestPassed) {
+                alert('Please test the API connection first!');
+                return;
+            }
+            
+            showLoading();
+            this.disabled = true;
+            
+            try {
+                const response = await fetch(`/test_openai_vision/${documentId}`);
+                const data = await response.json();
+                
+                showResults('visionResults', data, data.success);
+                
+                if (data.success) {
+                    this.textContent = '✅ Vision Test Complete';
+                    this.className = 'button success';
+                } else {
+                    this.textContent = '❌ Vision Test Failed';
+                    this.className = 'button danger';
+                }
+            } catch (error) {
+                showResults('visionResults', {
+                    message: 'Vision Test Error',
+                    error: error.message
+                }, false);
+                this.textContent = '❌ Test Error';
+                this.className = 'button danger';
+            } finally {
+                hideLoading();
+                this.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html> 

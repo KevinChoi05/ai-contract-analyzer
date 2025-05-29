@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Analyzing Contract</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body { 
+            font-family: 'Inter', Arial, sans-serif; 
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(120deg, #f7faff 0%, #e3e9f7 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        
+        .loader-container {
+            background: #fff;
+            padding: 48px 36px 40px 36px;
+            border-radius: 16px;
+            box-shadow: 0 4px 24px rgba(44,62,80,0.08);
+            text-align: center;
+            max-width: 500px;
+            width: 95%;
+        }
+        
+        h2 {
+            color: #3498db;
+            margin-top: 0;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+        
+        .filename {
+            color: #7f8c8d;
+            margin-bottom: 30px;
+            word-break: break-all;
+        }
+        
+        .spinner {
+            display: inline-block;
+            width: 80px;
+            height: 80px;
+            border: 7px solid rgba(52, 152, 219, 0.18);
+            border-radius: 50%;
+            border-top-color: #3498db;
+            margin: 30px auto 10px auto;
+            animation: spin 1.5s linear infinite;
+        }
+        
+        .status {
+            font-size: 1.25em;
+            color: #3498db;
+            margin-top: 28px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+        
+        @keyframes spin {
+            to {transform: rotate(360deg);}
+        }
+        
+        .progress-bar {
+            height: 8px;
+            background: #eee;
+            margin-top: 36px;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .progress {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #3498db 60%, #2980b9 100%);
+            border-radius: 4px;
+            transition: width 0.5s ease-out;
+        }
+        
+        .timer {
+            color: #7f8c8d;
+            font-size: 1.1em;
+            margin-top: 18px;
+        }
+        
+        .tip {
+            color: #7f8c8d;
+            font-size: 1em;
+            margin-top: 30px;
+        }
+        
+        @media (max-width: 600px) {
+            .loader-container { padding: 1.2em 0.5em; }
+            .spinner { width: 60px; height: 60px; border-width: 5px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="loader-container">
+        <h2>Analyzing Your Contract</h2>
+        <div class="filename">{{ filename }}</div>
+        
+        <div class="spinner"></div>
+        
+        <div class="status">
+            <p id="currentStep">Starting analysis...</p>
+        </div>
+        
+        <div class="progress-bar">
+            <div class="progress" id="progressBar"></div>
+        </div>
+        
+        <div class="timer" id="timer">0 seconds</div>
+        
+        <div class="tip">
+            <span>⏳ This may take a minute for large contracts. Please don't close this window.</span>
+        </div>
+    </div>
+    
+    <script>
+        // Track document processing status
+        const documentId = "{{ document_id }}";
+        const progressBar = document.getElementById('progressBar');
+        const currentStep = document.getElementById('currentStep');
+        const timer = document.getElementById('timer');
+        
+        // Start timer
+        const startTime = new Date();
+        setInterval(() => {
+            const elapsedSeconds = Math.floor((new Date() - startTime) / 1000);
+            timer.textContent = `${elapsedSeconds} seconds`;
+        }, 1000);
+        
+        // Poll for status updates
+        function checkStatus() {
+            fetch(`/check_status/${documentId}`)
+                .then(response => response.json())
+                .then(data => {
+                    // Update progress bar
+                    progressBar.style.width = `${data.progress}%`;
+                    
+                    // Update status message
+                    currentStep.textContent = data.current_step;
+                    
+                    // If complete, redirect to results
+                    if (data.complete) {
+                        window.location.href = `/results/${documentId}`;
+                    } else {
+                        // Poll again in 1 second
+                        setTimeout(checkStatus, 1000);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking status:', error);
+                    // Keep trying even if there's an error
+                    setTimeout(checkStatus, 2000);
+                });
+        }
+        
+        // Start polling
+        checkStatus();
+    </script>
+</body>
+</html> 
