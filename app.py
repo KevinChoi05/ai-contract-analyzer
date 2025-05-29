@@ -76,11 +76,11 @@ def load_user(user_id):
     return users.get(user_id)
 
 # configure your OpenAI key
-openai.api_key = os.getenv("OPENAI_API_KEY", "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")
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
 # ------------------------------------------------------------------
 # DeepSeek v3 client (using OpenAI-compatible SDK)
-DEESEEK_API_KEY   = os.getenv("DEEPSEEK_API_KEY", "sk-41f7a721ad3b4d4faf36fc818ad3597f")
+DEESEEK_API_KEY   = os.getenv("DEEPSEEK_API_KEY")
 DEESEEK_API_BASE  = os.getenv("DEEPSEEK_API_BASE", "https://api.deepseek.com")
 deepseek_client   = OpenAI(
     api_key=DEESEEK_API_KEY,
@@ -88,7 +88,7 @@ deepseek_client   = OpenAI(
 )
 
 # OpenAI client for Vision API (DeepSeek doesn't have vision capabilities)
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "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")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 openai_client = OpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
 
 # Configure which OpenAI vision model to use (GPT-4.1 Mini is the latest and most cost-effective)
