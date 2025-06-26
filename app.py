@@ -80,11 +80,11 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 
 # ------------------------------------------------------------------
 # DeepSeek v3 client (using OpenAI-compatible SDK)
-DEESEEK_API_KEY   = os.getenv("DEEPSEEK_API_KEY")
-DEESEEK_API_BASE  = os.getenv("DEEPSEEK_API_BASE", "https://api.deepseek.com")
+DEEPSEEK_API_KEY   = os.getenv("DEEPSEEK_API_KEY")
+DEEPSEEK_API_BASE  = os.getenv("DEEPSEEK_API_BASE", "https://api.deepseek.com")
 deepseek_client   = OpenAI(
-    api_key=DEESEEK_API_KEY,
-    base_url=DEESEEK_API_BASE
+    api_key=DEEPSEEK_API_KEY,
+    base_url=DEEPSEEK_API_BASE
 )
 
 # OpenAI client for Vision API (DeepSeek doesn't have vision capabilities)
@@ -3150,7 +3150,7 @@ if __name__ == '__main__':
     print("🚀 Starting Contract Analyzer Flask Application...")
     print(f"📊 Using OpenAI Vision Model: {OPENAI_VISION_MODEL}")
     print(f"🔑 OpenAI API Key: {'✅ Configured' if OPENAI_API_KEY else '❌ Not configured'}")
-    print(f"🤖 DeepSeek API Key: {'✅ Configured' if DEESEEK_API_KEY else '❌ Not configured'}")
+    print(f"🤖 DeepSeek API Key: {'✅ Configured' if DEEPSEEK_API_KEY else '❌ Not configured'}")
     print("🌐 Starting server...")
     
     if OPENAI_VISION_MODEL == "gpt-4.1-mini":
